@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import { Heart, ArrowRight, CheckCircle, Quote } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPhoto } from "@/lib/images/drivePhotos";
+import FundraiserBanner from "@/components/FundraiserBanner";
 
 const MARQUEE_PHOTOS = [
   { src: getPhoto("food-distribution-1"), alt: "Nightly food distribution — Hyderabad" },
@@ -42,22 +43,22 @@ export default async function HomePage() {
         {/* ── HERO ── */}
         <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <Image src=getPhoto("food-distribution-1") alt="Helping Mechons volunteers" fill className="object-cover" priority quality={90} />
+            <Image src={getPhoto("food-distribution-1")}  alt="Helping Mechons volunteers" fill className="object-cover" priority quality={90} />
             <div className="absolute inset-0 hero-gradient" />
           </div>
           <div className="relative z-10 section-container text-center py-24">
-            <span className="inline-block mb-6 px-4 py-2 bg-secondary/90 text-on-secondary text-label-md rounded-full uppercase tracking-widest">
+            <span className="inline-block mb-6 px-4 py-2 bg-secondary/90 text-on-secondary font-label-md text-label-md rounded-full uppercase tracking-widest">
               Est. 2020 · Hyderabad, India
             </span>
-            <h1 className="font-headline text-4xl md:text-headline-xl text-white mb-6 max-w-4xl mx-auto leading-tight text-balance drop-shadow-lg">
+            <h1 className="font-headline text-4xl md:font-headline-xl text-headline-xl text-white mb-6 max-w-4xl mx-auto leading-tight text-balance drop-shadow-lg">
               Healing Lives,<br className="hidden md:block" /> One Mission at a Time.
             </h1>
-            <p className="text-white/90 text-body-lg max-w-2xl mx-auto mb-10 drop-shadow-sm">
+            <p className="text-white/90 font-body-lg text-body-lg max-w-2xl mx-auto mb-10 drop-shadow-sm">
               Medical aid. Food security. Grocery support. Education. Orphanage care.<br className="hidden md:block" />
               Join us in restoring dignity to those who need it most.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/donate" className="btn-primary text-base px-10 py-4 shadow-lift">
+              <Link href="/donate" className="btn-primary text-base px-10 py-4 shadow-md">
                 <Heart className="w-5 h-5" /> Donate Now
               </Link>
               <Link href="/our-work" className="btn-outline text-white border-white text-base px-10 py-4">
@@ -83,8 +84,8 @@ export default async function HomePage() {
                 { stat: "85k",    label: "Students Supported" },
               ].map(({ stat, label }) => (
                 <div key={label} className="space-y-2">
-                  <p className="font-headline font-bold text-3xl md:text-headline-xl text-primary">{stat}</p>
-                  <p className="text-label-md text-on-surface-variant uppercase tracking-widest">{label}</p>
+                  <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-primary">{stat}</p>
+                  <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">{label}</p>
                 </div>
               ))}
             </div>
@@ -92,12 +93,15 @@ export default async function HomePage() {
         </section>
 
         {/* ── URGENT MISSIONS / CAMPAIGNS ── */}
+        {/* ── LIVE FUNDRAISER BANNER (dynamic from DB — shows if any active fundraiser exists) ── */}
+        <FundraiserBanner />
+
         <section className="py-section-padding bg-background">
           <div className="section-container">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
               <div>
-                <h2 className="font-headline text-headline-lg text-primary">Urgent Missions</h2>
-                <p className="text-body-md text-on-surface-variant mt-2 max-w-md">Your contribution directly funds these critical operations. Transparency is our foundation.</p>
+                <h2 className="font-headline-lg text-headline-lg text-primary">Urgent Missions</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-md">Your contribution directly funds these critical operations. Transparency is our foundation.</p>
               </div>
               <Link href="/campaigns" className="btn-ghost text-secondary border border-secondary rounded-lg whitespace-nowrap">
                 All Campaigns <ArrowRight className="w-4 h-4" />
@@ -111,21 +115,21 @@ export default async function HomePage() {
               ]).map((c) => {
                 const pct = Math.min(100, Math.round((c.current_amount / c.goal_amount) * 100)) || 0;
                 return (
-                  <Link key={c.id} href={`/campaigns/${c.slug || c.id}`} className="card group flex flex-col hover:shadow-lift transition-shadow">
+                  <Link key={c.id} href={`/campaigns/${c.slug || c.id}`} className="card group flex flex-col hover:shadow-md transition-shadow">
                     <div className="relative h-64 overflow-hidden">
                       <Image src={c.cover_image_url || getPhoto("food-distribution-1")} alt={c.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                       <span className="absolute top-3 left-3 badge bg-primary-fixed text-on-primary-fixed capitalize">{c.category}</span>
                     </div>
                     <div className="p-6 flex flex-col flex-grow">
-                      <h3 className="font-headline font-semibold text-headline-md text-primary mb-2">{c.title}</h3>
-                      <p className="text-body-md text-on-surface-variant mb-6 flex-grow">{c.description}</p>
+                      <h3 className="font-headline-md font-semibold text-headline-md text-primary mb-2">{c.title}</h3>
+                      <p className="font-body-md text-body-md text-on-surface-variant mb-6 flex-grow">{c.description}</p>
                       <div className="mt-auto">
-                        <div className="flex justify-between text-label-md mb-2">
+                        <div className="flex justify-between font-label-md text-label-md mb-2">
                           <span className="text-secondary">₹{Number(c.current_amount).toLocaleString("en-IN")} raised</span>
                           <span className="text-on-surface-variant">{pct}%</span>
                         </div>
                         <div className="progress-bar"><div className="progress-fill" style={{ width: `${pct}%` }} /></div>
-                        <p className="text-caption text-on-surface-variant mt-2">Goal: ₹{Number(c.goal_amount).toLocaleString("en-IN")}</p>
+                        <p className="font-caption text-caption text-on-surface-variant mt-2">Goal: ₹{Number(c.goal_amount).toLocaleString("en-IN")}</p>
                       </div>
                     </div>
                   </Link>
@@ -139,14 +143,14 @@ export default async function HomePage() {
         <section className="py-section-padding bg-primary text-on-primary">
           <div className="section-container grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div className="relative">
-              <Image src=getPhoto("old-age-care") alt="Helping Mechons team with beneficiaries" width={600} height={400} className="rounded-2xl shadow-2xl w-full object-cover" />
+              <Image src={getPhoto("old-age-care")}  alt="Helping Mechons team with beneficiaries" width={600} height={400} className="rounded-2xl shadow-2xl w-full object-cover" />
               <div className="absolute -bottom-6 -right-4 bg-secondary p-6 rounded-xl shadow-xl hidden lg:block max-w-xs">
-                <p className="font-headline italic text-on-secondary text-body-md">"Transparency is our promise; impact is our proof."</p>
+                <p className="font-headline italic text-on-secondary font-body-md text-body-md">"Transparency is our promise; impact is our proof."</p>
               </div>
             </div>
             <div className="space-y-6">
-              <h2 className="font-headline text-headline-lg text-on-primary">Why We Exist</h2>
-              <p className="text-body-lg text-on-primary-container">
+              <h2 className="font-headline-lg text-headline-lg text-on-primary">Why We Exist</h2>
+              <p className="font-body-lg text-body-lg text-on-primary-container">
                 Helping Mechons was founded on the belief that geography should not determine destiny.
                 We operate in underserved communities across India, bridging the gap between available resources and those who need them most.
               </p>
@@ -154,7 +158,7 @@ export default async function HomePage() {
                 {["100% of public donations go directly to programs.", "Real-time tracking of every dollar through our Portal.", "Collaborating with local leaders for lasting change."].map(p => (
                   <li key={p} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-secondary-container flex-shrink-0 mt-0.5" />
-                    <span className="text-body-md text-on-primary-container">{p}</span>
+                    <span className="font-body-md text-body-md text-on-primary-container">{p}</span>
                   </li>
                 ))}
               </ul>
@@ -168,7 +172,7 @@ export default async function HomePage() {
         {/* ── TRUSTED PARTNERS ── */}
         <section className="py-12 bg-surface-container-low border-y border-outline-variant/30">
           <div className="section-container">
-            <p className="text-center text-label-md text-on-surface-variant uppercase tracking-widest mb-8">Trusted Global Partners</p>
+            <p className="text-center font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-8">Trusted Global Partners</p>
             <div className="flex flex-wrap justify-center items-center gap-12 opacity-50">
               {["🏛", "🌐", "🤝", "🏥", "📋"].map((icon, i) => (
                 <span key={i} className="text-3xl">{icon}</span>
@@ -181,20 +185,20 @@ export default async function HomePage() {
         <section className="py-section-padding bg-background">
           <div className="section-container">
             <div className="text-center mb-12">
-              <h2 className="font-headline text-headline-lg text-primary">Voices of the Community</h2>
+              <h2 className="font-headline-lg text-headline-lg text-primary">Voices of the Community</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
               {TESTIMONIALS.map(({ initials, name, role, quote }) => (
                 <div key={name} className="bg-surface-container-low rounded-xl border-l-4 border-secondary p-8 relative">
                   <Quote className="absolute top-4 right-4 w-8 h-8 text-outline-variant/20" />
-                  <p className="text-body-md text-on-surface-variant italic mb-6 leading-relaxed">"{quote}"</p>
+                  <p className="font-body-md text-body-md text-on-surface-variant italic mb-6 leading-relaxed">"{quote}"</p>
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center font-headline font-bold text-primary text-sm">
                       {initials}
                     </div>
                     <div>
-                      <p className="text-label-md text-on-surface">{name}</p>
-                      <p className="text-caption text-on-surface-variant">{role}</p>
+                      <p className="font-label-md text-label-md text-on-surface">{name}</p>
+                      <p className="font-caption text-caption text-on-surface-variant">{role}</p>
                     </div>
                   </div>
                 </div>
@@ -208,8 +212,8 @@ export default async function HomePage() {
           <div className="section-container">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
               <div>
-                <h2 className="font-headline text-headline-lg text-primary">Our Impact in Focus</h2>
-                <p className="text-body-md text-on-surface-variant mt-1">Unfiltered moments from our operations worldwide.</p>
+                <h2 className="font-headline-lg text-headline-lg text-primary">Our Impact in Focus</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Unfiltered moments from our operations worldwide.</p>
               </div>
               <Link href="/our-work" className="btn-ghost text-secondary border border-secondary rounded-lg whitespace-nowrap">
                 View Gallery <ArrowRight className="w-4 h-4" />
@@ -226,7 +230,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── PHOTO MARQUEE ── */}
-        <section className="py-10 bg-white overflow-hidden border-y border-outline-variant/30">
+        <section className="py-10 bg-surface overflow-hidden border-y border-outline-variant/30">
           <div className="overflow-hidden">
             <div className="marquee-track">
               {[...MARQUEE_PHOTOS, ...MARQUEE_PHOTOS].map((p, i) => (
@@ -242,14 +246,14 @@ export default async function HomePage() {
         {/* ── CTA BANNER*/}
         <section className="py-20 bg-secondary">
           <div className="section-container text-center">
-            <h2 className="font-headline text-headline-lg text-on-secondary mb-4">
+            <h2 className="font-headline-lg text-headline-lg text-on-secondary mb-4">
               Be the Reason Someone Smiles Today
             </h2>
-            <p className="text-body-lg text-on-secondary/90 mb-8 max-w-xl mx-auto">
+            <p className="font-body-lg text-body-lg text-on-secondary/90 mb-8 max-w-xl mx-auto">
               Every small contribution fuels our missions. Start your journey as a changemaker with us.
             </p>
             <Link href="/donate"
-              className="inline-flex items-center gap-2 bg-on-secondary text-secondary px-10 py-4 rounded-lg font-semibold text-label-md hover:opacity-90 transition-opacity shadow-lift">
+              className="inline-flex items-center gap-2 bg-on-secondary text-secondary px-10 py-4 rounded-lg font-semibold font-label-md text-label-md hover:opacity-90 transition-opacity shadow-md">
               <Heart className="w-5 h-5 fill-current" />
               Start Monthly Giving
             </Link>
