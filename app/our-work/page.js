@@ -1,5 +1,5 @@
-import { getPhoto } from "@/lib/images/drivePhotos";
 "use client";
+import { getPhoto } from "@/lib/images/drivePhotos";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,11 +38,11 @@ export default function OurWorkPage() {
         {/* ── Hero ── */}
         <section className="bg-surface-container-low py-section-padding text-center border-b border-outline-variant/30">
           <div className="section-container">
-            <span className="text-label-md text-secondary uppercase tracking-widest">Transparency in Action</span>
-            <h1 className="font-headline text-headline-xl-mobile md:text-headline-xl text-primary mt-3 mb-4 max-w-3xl mx-auto">
+            <span className="font-label-md text-label-md text-secondary uppercase tracking-widest">Transparency in Action</span>
+            <h1 className="font-headline-xl-mobile font-headline-xl text-headline-xl-mobile md:font-headline-xl text-headline-xl text-primary mt-3 mb-4 max-w-3xl mx-auto">
               Measurable Impact in Every Mission.
             </h1>
-            <p className="text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+            <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
               We bridge the gap between intent and impact. Explore our initiatives focused on dignity,
               health, and sustainable support for communities in urgent need.
             </p>
@@ -50,7 +50,7 @@ export default function OurWorkPage() {
         </section>
 
         {/* ── Photo strip / marquee ── */}
-        <section className="overflow-hidden bg-white border-b border-outline-variant/30">
+        <section className="overflow-hidden bg-surface border-b border-outline-variant/30">
           <div className="flex">
             {ALL_PHOTOS.slice(0, 4).map((p, i) => (
               <div key={i} className="flex-1 h-40 md:h-52 overflow-hidden cursor-pointer relative group"
@@ -66,7 +66,7 @@ export default function OurWorkPage() {
           <div className="section-container">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
               {CAUSES.map(cause => (
-                <div key={cause.id} className="card group hover:shadow-lift transition-all duration-300">
+                <div key={cause.id} className="card group hover:shadow-md transition-all duration-300">
                   {/* Image */}
                   <div className="relative h-52 overflow-hidden cursor-pointer"
                     onClick={() => setLightbox({ src: cause.img, alt: cause.label })}>
@@ -85,9 +85,9 @@ export default function OurWorkPage() {
                       <h3 className="font-headline font-semibold text-on-surface">{cause.label}</h3>
                       <span className="text-xl flex-shrink-0">{cause.icon}</span>
                     </div>
-                    <p className="text-body-md text-on-surface-variant mb-4 text-sm leading-relaxed">{cause.desc}</p>
+                    <p className="font-body-md text-body-md text-on-surface-variant mb-4 text-sm leading-relaxed">{cause.desc}</p>
                     <div>
-                      <div className="flex justify-between text-caption text-on-surface-variant mb-1">
+                      <div className="flex justify-between font-caption text-caption text-on-surface-variant mb-1">
                         <span className="text-secondary font-semibold">{cause.pct}% of Funding Goal Reached</span>
                         <span>{cause.raised} / {cause.goal}</span>
                       </div>
@@ -115,8 +115,8 @@ export default function OurWorkPage() {
               { stat: "98%",   label: "Fund Transparency" },
             ].map(({ stat, label }) => (
               <div key={label}>
-                <p className="font-headline font-bold text-3xl md:text-headline-xl text-secondary-container">{stat}</p>
-                <p className="text-label-md text-on-primary-container uppercase tracking-widest mt-2">{label}</p>
+                <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-secondary-container">{stat}</p>
+                <p className="font-label-md text-label-md text-on-primary-container uppercase tracking-widest mt-2">{label}</p>
               </div>
             ))}
           </div>
@@ -126,11 +126,11 @@ export default function OurWorkPage() {
         <section className="py-16 bg-secondary">
           <div className="section-container flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h2 className="font-headline text-headline-md text-on-secondary">Your contribution is the final piece.</h2>
-              <p className="text-body-md text-on-secondary/90 mt-2">Every dollar is tracked and allocated to the missions you see above.</p>
+              <h2 className="font-headline-md text-headline-md text-on-secondary">Your contribution is the final piece.</h2>
+              <p className="font-body-md text-body-md text-on-secondary/90 mt-2">Every dollar is tracked and allocated to the missions you see above.</p>
             </div>
             <Link href="/donate"
-              className="flex-shrink-0 bg-on-secondary text-secondary px-8 py-4 rounded-lg font-semibold text-label-md hover:opacity-90 transition-opacity">
+              className="flex-shrink-0 bg-on-secondary text-secondary px-8 py-4 rounded-lg font-semibold font-label-md text-label-md hover:opacity-90 transition-opacity">
               Join the Mission
             </Link>
           </div>

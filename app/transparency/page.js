@@ -29,17 +29,17 @@ export default async function TransparencyPage() {
         <section className="py-section-padding bg-background">
           <div className="section-container grid grid-cols-1 lg:grid-cols-2 gap-gutter items-center">
             <div className="space-y-5">
-              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed text-label-md">REAL-TIME IMPACT</span>
-              <h1 className="font-headline text-headline-xl-mobile md:text-headline-xl text-primary leading-tight">
+              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md">REAL-TIME IMPACT</span>
+              <h1 className="font-headline-xl-mobile font-headline-xl text-headline-xl-mobile md:font-headline-xl text-headline-xl text-primary leading-tight">
                 Every dollar accounted for. Every life honored.
               </h1>
-              <p className="text-body-lg text-on-surface-variant leading-relaxed">
+              <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
                 At Helping Mechons, we believe trust is built on transparency. Our live impact dashboard provides
                 a direct window into how your contributions are being deployed on the front lines of humanitarian aid.
               </p>
             </div>
             <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
-              <Image src=getPhoto("old-age-care") alt="Helping Mechons transparency in action" fill className="object-cover" />
+              <Image src={getPhoto("old-age-care")}  alt="Helping Mechons transparency in action" fill className="object-cover" />
             </div>
           </div>
         </section>
@@ -53,8 +53,8 @@ export default async function TransparencyPage() {
               { stat: "21,05,800",                                                                         label: "Meals Delivered"  },
             ].map(({ stat, label }) => (
               <div key={label} className="bg-primary-container rounded-xl p-8 text-center border border-primary-container">
-                <p className="font-headline font-bold text-3xl md:text-headline-xl text-secondary-container">{stat}</p>
-                <p className="text-label-md text-on-primary-container uppercase tracking-widest mt-3">{label}</p>
+                <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-secondary-container">{stat}</p>
+                <p className="font-label-md text-label-md text-on-primary-container uppercase tracking-widest mt-3">{label}</p>
               </div>
             ))}
           </div>
@@ -74,7 +74,7 @@ export default async function TransparencyPage() {
                 { label: "Community Education",             pct: 6,  color: "bg-green-400"  },
               ].map(({ label, pct, color }) => (
                 <div key={label} className="mb-5">
-                  <div className="flex justify-between text-body-md mb-1.5">
+                  <div className="flex justify-between font-body-md text-body-md mb-1.5">
                     <span className="text-on-surface">{label}</span>
                     <span className="text-secondary font-semibold">{pct}%</span>
                   </div>
@@ -83,7 +83,7 @@ export default async function TransparencyPage() {
                   </div>
                 </div>
               ))}
-              <p className="text-caption text-on-surface-variant mt-4 italic">
+              <p className="font-caption text-caption text-on-surface-variant mt-4 italic">
                 *Helping Mechons maintains a 0% internal expense policy for public donations;
                 operational costs are covered by separate private endowment.
               </p>
@@ -108,11 +108,11 @@ export default async function TransparencyPage() {
                       className={`w-full rounded-t-lg transition-all duration-700 ${highlight ? "bg-secondary" : "bg-surface-container-high"}`}
                       style={{ height: h }}
                     />
-                    <span className="text-caption text-on-surface-variant text-xs">{year}</span>
+                    <span className="font-caption text-caption text-on-surface-variant text-xs">{year}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-caption text-on-surface-variant mt-4">Year-over-year humanitarian reach expansion</p>
+              <p className="font-caption text-caption text-on-surface-variant mt-4">Year-over-year humanitarian reach expansion</p>
             </div>
           </div>
         </section>
@@ -122,8 +122,8 @@ export default async function TransparencyPage() {
           <div className="section-container">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
               <div>
-                <h2 className="font-headline text-headline-lg text-primary">Completed Missions Log</h2>
-                <p className="text-body-md text-on-surface-variant mt-1">Detailed reports from our most recent deployments.</p>
+                <h2 className="font-headline-lg text-headline-lg text-primary">Completed Missions Log</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Detailed reports from our most recent deployments.</p>
               </div>
               <Link href="#" className="btn-ghost text-secondary border border-secondary rounded-lg whitespace-nowrap">
                 View All Logs
@@ -143,11 +143,11 @@ export default async function TransparencyPage() {
                   </div>
                   <div className="p-5">
                     <h3 className="font-headline font-semibold text-on-surface mb-2">{m.title}</h3>
-                    <p className="text-body-md text-on-surface-variant text-sm mb-4 leading-relaxed">{m.desc}</p>
+                    <p className="font-body-md text-body-md text-on-surface-variant text-sm mb-4 leading-relaxed">{m.desc}</p>
                     <div className="flex items-center justify-between pt-3 border-t border-outline-variant/30">
                       <div>
-                        <p className="text-caption text-on-surface-variant uppercase tracking-wider">Funds Applied</p>
-                        <p className="text-label-md font-semibold text-on-surface">{m.funds}</p>
+                        <p className="font-caption text-caption text-on-surface-variant uppercase tracking-wider">Funds Applied</p>
+                        <p className="font-label-md text-label-md font-semibold text-on-surface">{m.funds}</p>
                       </div>
                       <button className="p-2 rounded-lg text-secondary hover:bg-secondary-fixed/30 transition-colors">
                         <ExternalLink className="w-4 h-4" />
@@ -163,10 +163,10 @@ export default async function TransparencyPage() {
         {/* ── CTA with 2 buttons*/}
         <section className="py-20 bg-surface-container">
           <div className="section-container max-w-3xl mx-auto text-center">
-            <h2 className="font-headline text-headline-lg text-primary mb-4">
+            <h2 className="font-headline-lg text-headline-lg text-primary mb-4">
               Help us reach the next milestone.
             </h2>
-            <p className="text-body-lg text-on-surface-variant mb-8">
+            <p className="font-body-lg text-body-lg text-on-surface-variant mb-8">
               Your contribution goes 100% to field operations. Join thousands of transparent donors
               making a measurable difference today.
             </p>
@@ -175,7 +175,7 @@ export default async function TransparencyPage() {
                 Start Monthly Donation
               </Link>
               <Link href="/transparency"
-                className="border-2 border-primary text-primary px-10 py-4 rounded-lg font-semibold text-label-md hover:bg-primary hover:text-on-primary transition-all">
+                className="border-2 border-primary text-primary px-10 py-4 rounded-lg font-semibold font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-all">
                 View Annual Report
               </Link>
             </div>

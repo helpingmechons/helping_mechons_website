@@ -38,11 +38,11 @@ export default function AboutPage() {
         <section className="py-section-padding bg-background">
           <div className="section-container grid grid-cols-1 lg:grid-cols-2 gap-gutter items-center">
             <div className="space-y-6">
-              <span className="text-label-md text-secondary uppercase tracking-widest">Our Story</span>
-              <h1 className="font-headline text-headline-xl-mobile md:text-headline-xl text-primary leading-tight">
+              <span className="font-label-md text-label-md text-secondary uppercase tracking-widest">Our Story</span>
+              <h1 className="font-headline-xl-mobile font-headline-xl text-headline-xl-mobile md:font-headline-xl text-headline-xl text-primary leading-tight">
                 Healing Humanity Through Action.
               </h1>
-              <p className="text-body-lg text-on-surface-variant max-w-lg">
+              <p className="font-body-lg text-body-lg text-on-surface-variant max-w-lg">
                 Founded in 2020, Helping Mechons emerged from a single mobile clinic in a conflict zone.
                 Today, we stand as a beacon for humanitarian medical aid and nutrition support, driven by the
                 belief that high-quality healthcare is a fundamental human right.
@@ -54,15 +54,14 @@ export default function AboutPage() {
             </div>
             <div className="relative">
               <Image
-                src=getPhoto("medical-support")
-                alt="Helping Mechons medical team in action"
+                src={getPhoto("medical-support")}  alt="Helping Mechons medical team in action"
                 width={600} height={480}
                 className="rounded-2xl w-full object-cover shadow-xl"
               />
               {/* Stat overlay badge */}
-              <div className="absolute bottom-6 left-6 bg-secondary text-on-secondary px-5 py-3 rounded-xl shadow-lift">
-                <p className="font-headline font-bold text-headline-lg">1.2M+</p>
-                <p className="text-caption text-on-secondary uppercase tracking-wider">Lives Impacted</p>
+              <div className="absolute bottom-6 left-6 bg-secondary text-on-secondary px-5 py-3 rounded-xl shadow-md">
+                <p className="font-headline-lg font-bold text-headline-lg">1.2M+</p>
+                <p className="font-caption text-caption text-on-secondary uppercase tracking-wider">Lives Impacted</p>
               </div>
             </div>
           </div>
@@ -75,8 +74,8 @@ export default function AboutPage() {
               <div className="w-12 h-12 bg-secondary-fixed rounded-xl flex items-center justify-center mb-6">
                 <Target className="w-6 h-6 text-on-secondary-fixed" />
               </div>
-              <h2 className="font-headline text-headline-md text-primary mb-4">Our Mission</h2>
-              <p className="text-body-lg text-on-surface-variant leading-relaxed">
+              <h2 className="font-headline-md text-headline-md text-primary mb-4">Our Mission</h2>
+              <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
                 To provide life-saving medical care and nutritional stability to marginalised communities in crisis,
                 ensuring that dignity and health are restored regardless of geography or politics.
               </p>
@@ -85,8 +84,8 @@ export default function AboutPage() {
               <div className="w-12 h-12 bg-primary-fixed rounded-xl flex items-center justify-center mb-6">
                 <Eye className="w-6 h-6 text-on-primary-fixed" />
               </div>
-              <h2 className="font-headline text-headline-md text-primary mb-4">Our Vision</h2>
-              <p className="text-body-lg text-on-surface-variant leading-relaxed">
+              <h2 className="font-headline-md text-headline-md text-primary mb-4">Our Vision</h2>
+              <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
                 A world where medical crises no longer dictate a community's future, and where transparency
                 and humanitarian efficiency set the gold standard for global aid.
               </p>
@@ -99,18 +98,18 @@ export default function AboutPage() {
           <div className="section-container max-w-4xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
               <div className="md:col-span-1">
-                <Image src=getPhoto("education-support") alt="Founder" width={400} height={500}
-                  className="rounded-2xl object-cover w-full shadow-lift" />
+                <Image src={getPhoto("education-support")}  alt="Founder" width={400} height={500}
+                  className="rounded-2xl object-cover w-full shadow-md" />
               </div>
               <div className="md:col-span-2 space-y-5">
                 <p className="font-headline text-6xl text-secondary opacity-40 leading-none">99</p>
-                <blockquote className="font-headline text-headline-md text-primary italic leading-relaxed">
+                <blockquote className="font-headline-md text-headline-md text-primary italic leading-relaxed">
                   "Transparency isn't just a policy; it's the bridge of trust between the donor's heart and the patient's recovery.
                   We founded Helping Mechons to prove that every dollar can carry the weight of a miracle."
                 </blockquote>
                 <div>
-                  <p className="font-headline font-semibold text-primary text-body-lg">Dr. Elena Sterling</p>
-                  <p className="text-caption text-on-surface-variant">Founder & Chief Medical Officer</p>
+                  <p className="font-headline font-semibold text-primary font-body-lg text-body-lg">Dr. Elena Sterling</p>
+                  <p className="font-caption text-caption text-on-surface-variant">Founder & Chief Medical Officer</p>
                 </div>
               </div>
             </div>
@@ -121,8 +120,8 @@ export default function AboutPage() {
         <section className="py-section-padding bg-primary">
           <div className="section-container">
             <div className="text-center mb-12">
-              <h2 className="font-headline text-headline-lg text-on-primary">A 4-Year Journey</h2>
-              <p className="text-body-md text-on-primary-container mt-2">From a single clinic to a global network of medical relief and food security programs.</p>
+              <h2 className="font-headline-lg text-headline-lg text-on-primary">A 4-Year Journey</h2>
+              <p className="font-body-md text-body-md text-on-primary-container mt-2">From a single clinic to a global network of medical relief and food security programs.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {TIMELINE.map((item, i) => (
@@ -131,7 +130,7 @@ export default function AboutPage() {
                     {item.year}
                   </div>
                   <h3 className="font-headline font-semibold text-on-primary mb-2">{item.title}</h3>
-                  <p className="text-caption text-on-primary-container leading-relaxed">{item.desc}</p>
+                  <p className="font-caption text-caption text-on-primary-container leading-relaxed">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -142,14 +141,14 @@ export default function AboutPage() {
         <section className="py-section-padding bg-background">
           <div className="section-container">
             <div className="text-center mb-12">
-              <h2 className="font-headline text-headline-lg text-primary">Our Core Values</h2>
+              <h2 className="font-headline-lg text-headline-lg text-primary">Our Core Values</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
               {VALUES.map(({ icon, title, desc }, i) => (
                 <div key={title} className={`card p-6 ${i === 3 ? "bg-primary text-on-primary border-0" : ""}`}>
                   <div className="text-3xl mb-4">{icon}</div>
-                  <h3 className={`font-headline font-semibold text-body-lg mb-2 ${i === 3 ? "text-on-primary" : "text-on-surface"}`}>{title}</h3>
-                  <p className={`text-body-md leading-relaxed ${i === 3 ? "text-on-primary-container" : "text-on-surface-variant"}`}>{desc}</p>
+                  <h3 className={`font-headline font-semibold font-body-lg text-body-lg mb-2 ${i === 3 ? "text-on-primary" : "text-on-surface"}`}>{title}</h3>
+                  <p className={`font-body-md text-body-md leading-relaxed ${i === 3 ? "text-on-primary-container" : "text-on-surface-variant"}`}>{desc}</p>
                 </div>
               ))}
             </div>
@@ -159,13 +158,13 @@ export default function AboutPage() {
         {/* ── 2-col full-width image strip ── */}
         <section className="grid grid-cols-1 md:grid-cols-2 h-72 md:h-96">
           <div className="relative overflow-hidden">
-            <Image src=getPhoto("food-distribution-2") alt="Advanced Medical Hub" fill className="object-cover" />
+            <Image src={getPhoto("food-distribution-2")}  alt="Advanced Medical Hub" fill className="object-cover" />
             <div className="absolute inset-0 bg-primary/40 flex items-end p-6">
               <p className="text-on-primary font-headline font-semibold">Advanced Medical Hubs</p>
             </div>
           </div>
           <div className="relative overflow-hidden">
-            <Image src=getPhoto("grocery-support") alt="Nutritional Stability" fill className="object-cover" />
+            <Image src={getPhoto("grocery-support")}  alt="Nutritional Stability" fill className="object-cover" />
             <div className="absolute inset-0 bg-primary/40 flex items-end p-6">
               <p className="text-on-primary font-headline font-semibold">Nutritional Stability</p>
             </div>
@@ -177,8 +176,8 @@ export default function AboutPage() {
           <div className="section-container">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
               <div>
-                <h2 className="font-headline text-headline-lg text-primary">The People Behind the Mission</h2>
-                <p className="text-body-md text-on-surface-variant mt-1">
+                <h2 className="font-headline-lg text-headline-lg text-primary">The People Behind the Mission</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">
                   Our team is comprised of 450+ medical professionals, logistical experts,
                   and thousands of dedicated volunteers across India.
                 </p>
@@ -195,7 +194,7 @@ export default function AboutPage() {
                   </div>
                   <div className="p-4">
                     <p className="font-headline font-semibold text-on-surface">{name}</p>
-                    <p className="text-caption text-on-surface-variant">{role}</p>
+                    <p className="font-caption text-caption text-on-surface-variant">{role}</p>
                   </div>
                 </div>
               ))}
@@ -207,8 +206,8 @@ export default function AboutPage() {
         <section className="py-section-padding bg-surface-container-high border-y border-outline-variant">
           <div className="section-container grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
             <div>
-              <h2 className="font-headline text-headline-lg text-primary mb-4">Built on Absolute Transparency</h2>
-              <p className="text-body-lg text-on-surface-variant mb-6">
+              <h2 className="font-headline-lg text-headline-lg text-primary mb-4">Built on Absolute Transparency</h2>
+              <p className="font-body-lg text-body-lg text-on-surface-variant mb-6">
                 We believe that donors are partners, not just sources of funding. Every quarter, we release
                 detailed financial breakdowns of our operational costs and mission expenditures.
               </p>
@@ -221,15 +220,15 @@ export default function AboutPage() {
                   <li key={label} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-on-surface text-body-md">{label}</p>
-                      <p className="text-caption text-on-surface-variant">{desc}</p>
+                      <p className="font-semibold text-on-surface font-body-md text-body-md">{label}</p>
+                      <p className="font-caption text-caption text-on-surface-variant">{desc}</p>
                     </div>
                   </li>
                 ))}
               </ul>
             </div>
             <div>
-              <p className="text-label-md text-on-surface-variant uppercase tracking-widest mb-4">Where Your Donation Goes</p>
+              <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-4">Where Your Donation Goes</p>
               {[
                 { label: "Medical Supplies",   pct: 45, color: "bg-blue-500"   },
                 { label: "Food & Nutrition",   pct: 32, color: "bg-orange-400" },
@@ -237,7 +236,7 @@ export default function AboutPage() {
                 { label: "Administration",     pct: 8,  color: "bg-gray-400"   },
               ].map(({ label, pct, color }) => (
                 <div key={label} className="mb-4">
-                  <div className="flex justify-between text-body-md mb-1">
+                  <div className="flex justify-between font-body-md text-body-md mb-1">
                     <span className="text-on-surface">{label}</span>
                     <span className="text-on-surface-variant">{pct}%</span>
                   </div>
