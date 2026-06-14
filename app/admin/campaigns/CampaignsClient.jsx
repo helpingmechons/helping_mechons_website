@@ -1,7 +1,10 @@
 "use client";
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { PlusCircle, Edit2, Trash2, ToggleLeft, ToggleRight, X, Upload, Clock } from "lucide-react";
+import {
+  PlusCircle, Edit2, Trash2, ToggleLeft, ToggleRight,
+  X, Upload, Clock, BadgeCheck, Eye, EyeOff,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -11,14 +14,16 @@ const EMPTY = {
   start_date: "", end_date: "",
   is_fundraiser: false, urgency_label: "Limited Time",
   poster_url: "", poster_drive_id: "",
+  // ── New fields ──────────────────────────────────────────────────────────────
+  show_public_stats: false,   // when true: show raised ₹ / goal / progress bar publicly
+  is_completed:      false,   // when true: show "Mission Completed" badge, hide amounts
+  // ────────────────────────────────────────────────────────────────────────────
 };
 
 function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
-
 function daysLeft(end) {
   if (!end) return null;
-  const diff = Math.ceil((new Date(end) - new Date()) / (1000 * 60 * 60 * 24));
-  return diff;
+  return Math.ceil((new Date(end) - new Date()) / (1000 * 60 * 60 * 24));
 }
 
 export default function CampaignsClient({ initialCampaigns }) {
@@ -30,12 +35,14 @@ export default function CampaignsClient({ initialCampaigns }) {
   const supabase = createClient();
 
   const openCreate = () => { setForm({ ...EMPTY }); setModal("create"); };
-  const openEdit   = (c)  => {
+  const openEdit   = (c) => {
     setForm({
       ...EMPTY, ...c,
-      goal_amount: String(c.goal_amount),
-      start_date:  c.start_date?.split("T")[0] || "",
-      end_date:    c.end_date?.split("T")[0] || "",
+      goal_amount:       String(c.goal_amount || ""),
+      start_date:        c.start_date?.split("T")[0] || "",
+      end_date:          c.end_date?.split("T")[0] || "",
+      show_public_stats: Boolean(c.show_public_stats),
+      is_completed:      Boolean(c.is_completed),
     });
     setModal(c);
   };
@@ -45,11 +52,12 @@ export default function CampaignsClient({ initialCampaigns }) {
     setForm(f => {
       const updated = { ...f, [name]: type === "checkbox" ? checked : value };
       if (name === "title" && modal === "create") updated.slug = slugify(value);
+      // If marking as completed, auto-hide public stats
+      if (name === "is_completed" && checked) updated.show_public_stats = false;
       return updated;
     });
   };
 
-  // Upload cover image to Google Drive
   const handleImageUpload = async (e, field = "cover_image_url") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -57,7 +65,7 @@ export default function CampaignsClient({ initialCampaigns }) {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("purpose", form.is_fundraiser ? "campaign" : "campaign");
+      fd.append("purpose", "campaign");
       const res  = await fetch("/api/drive", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
@@ -66,7 +74,7 @@ export default function CampaignsClient({ initialCampaigns }) {
       } else {
         setForm(f => ({ ...f, cover_image_url: data.viewUrl }));
       }
-      toast.success("Image uploaded to Google Drive ✓");
+      toast.success("Image uploaded ✓");
     } catch (err) { toast.error(err.message); }
     finally { setUploading(false); }
   };
@@ -76,22 +84,27 @@ export default function CampaignsClient({ initialCampaigns }) {
     if (form.is_fundraiser && !form.end_date) { toast.error("Fundraisers require an end date."); return; }
     start(async () => {
       const payload = {
-        title:          form.title,
-        slug:           form.slug || slugify(form.title),
-        description:    form.description,
-        goal_amount:    Number(form.goal_amount),
-        cover_image_url:form.cover_image_url,
-        category:       form.category,
-        active:         form.active,
-        featured:       form.featured,
-        location:       form.location,
-        start_date:     form.start_date || null,
-        end_date:       form.end_date || null,
-        is_fundraiser:  form.is_fundraiser,
-        urgency_label:  form.urgency_label || "Limited Time",
-        poster_url:     form.poster_url || null,
-        poster_drive_id:form.poster_drive_id || null,
+        title:             form.title,
+        slug:              form.slug || slugify(form.title),
+        description:       form.description,
+        goal_amount:       Number(form.goal_amount),
+        cover_image_url:   form.cover_image_url,
+        category:          form.category,
+        active:            form.active,
+        featured:          form.featured,
+        location:          form.location,
+        start_date:        form.start_date || null,
+        end_date:          form.end_date || null,
+        is_fundraiser:     form.is_fundraiser,
+        urgency_label:     form.urgency_label || "Limited Time",
+        poster_url:        form.poster_url || null,
+        poster_drive_id:   form.poster_drive_id || null,
+        // ── Visibility controls ──────────────────────────────────────────────
+        show_public_stats: form.show_public_stats,
+        is_completed:      form.is_completed,
+        // ────────────────────────────────────────────────────────────────────
       };
+
       if (modal === "create") {
         const { data, error } = await supabase.from("campaigns").insert(payload).select().single();
         if (error) { toast.error(error.message); return; }
@@ -122,7 +135,7 @@ export default function CampaignsClient({ initialCampaigns }) {
     toast.success("Campaign deleted.");
   };
 
-  const regular    = campaigns.filter(c => !c.is_fundraiser);
+  const regular     = campaigns.filter(c => !c.is_fundraiser);
   const fundraisers = campaigns.filter(c => c.is_fundraiser);
 
   return (
@@ -139,7 +152,7 @@ export default function CampaignsClient({ initialCampaigns }) {
         </button>
       </div>
 
-      {/* ── Fundraisers section ── */}
+      {/* ── Fundraisers ── */}
       {fundraisers.length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
@@ -158,10 +171,11 @@ export default function CampaignsClient({ initialCampaigns }) {
                     ) : (
                       <div className="w-full h-full bg-surface-container flex items-center justify-center text-on-surface-variant font-caption text-caption">No Poster</div>
                     )}
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 flex gap-1 flex-wrap">
                       <span className="badge bg-secondary text-on-secondary">{c.urgency_label || "Limited Time"}</span>
+                      {c.is_completed && <span className="badge bg-primary-fixed text-on-primary-fixed">Completed</span>}
                     </div>
-                    {days !== null && (
+                    {days !== null && !c.is_completed && (
                       <div className="absolute top-3 right-3">
                         <span className={`badge ${days <= 2 ? "bg-error text-on-error" : "bg-primary text-on-primary"}`}>
                           {days > 0 ? `${days}d left` : "Ended"}
@@ -171,6 +185,14 @@ export default function CampaignsClient({ initialCampaigns }) {
                   </div>
                   <div className="p-5 flex flex-col flex-grow">
                     <h3 className="font-headline-md text-headline-md text-on-surface mb-1 line-clamp-2">{c.title}</h3>
+                    {/* Stats visibility indicator */}
+                    <div className="flex items-center gap-2 mb-2">
+                      {c.show_public_stats && !c.is_completed ? (
+                        <span className="flex items-center gap-1 text-caption text-secondary"><Eye className="w-3 h-3" /> Stats visible</span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-caption text-on-surface-variant"><EyeOff className="w-3 h-3" /> Stats hidden</span>
+                      )}
+                    </div>
                     <p className="font-caption text-caption text-on-surface-variant mb-3">
                       {c.start_date ? new Date(c.start_date).toLocaleDateString("en-IN") : "—"} → {c.end_date ? new Date(c.end_date).toLocaleDateString("en-IN") : "Open"}
                     </p>
@@ -213,16 +235,25 @@ export default function CampaignsClient({ initialCampaigns }) {
                 ) : (
                   <div className="w-full h-full bg-surface-container flex items-center justify-center text-on-surface-variant font-caption text-caption">No Image</div>
                 )}
-                <div className="absolute top-3 right-3 flex gap-2">
-                  <span className={`badge ${c.active ? "bg-primary-fixed text-on-primary-fixed" : "badge-rejected"}`}>
-                    {c.active ? "Active" : "Inactive"}
-                  </span>
+                <div className="absolute top-3 right-3 flex gap-1 flex-wrap justify-end">
+                  {c.is_completed
+                    ? <span className="badge bg-primary-fixed text-on-primary-fixed flex items-center gap-1"><BadgeCheck className="w-3 h-3" /> Done</span>
+                    : <span className={`badge ${c.active ? "bg-primary-fixed text-on-primary-fixed" : "badge-rejected"}`}>{c.active ? "Active" : "Inactive"}</span>
+                  }
                   {c.featured && <span className="badge bg-secondary text-on-secondary">Featured</span>}
                 </div>
               </div>
               <div className="p-5 flex flex-col flex-grow">
                 <h3 className="font-headline-md text-headline-md text-on-surface mb-1 line-clamp-2">{c.title}</h3>
-                <p className="font-caption text-caption text-on-surface-variant capitalize mb-3">{c.category} · {c.location || "—"}</p>
+                <p className="font-caption text-caption text-on-surface-variant capitalize mb-1">{c.category} · {c.location || "—"}</p>
+                {/* Stats visibility indicator */}
+                <div className="flex items-center gap-1 mb-3">
+                  {c.show_public_stats && !c.is_completed ? (
+                    <span className="flex items-center gap-1 text-caption text-secondary"><Eye className="w-3 h-3" /> Stats visible to public</span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-caption text-on-surface-variant"><EyeOff className="w-3 h-3" /> Stats hidden from public</span>
+                  )}
+                </div>
                 <div className="mt-auto">
                   <div className="flex justify-between font-caption text-caption mb-1">
                     <span>₹{Number(c.current_amount).toLocaleString("en-IN")}</span>
@@ -248,10 +279,16 @@ export default function CampaignsClient({ initialCampaigns }) {
         })}
       </div>
 
-      {/* ── Modal ── */}
+      {/* ── Create / Edit Modal ── */}
       {modal && (
-        <div className="fixed inset-0 bg-primary/60 z-50 flex items-start justify-center p-4 pt-10 overflow-auto" onClick={() => setModal(null)}>
-          <div className="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant max-w-xl w-full p-8 space-y-4" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-primary/60 z-50 flex items-start justify-center p-4 pt-10 overflow-auto"
+          onClick={() => setModal(null)}
+        >
+          <div
+            className="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant max-w-xl w-full p-8 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-headline-md text-headline-md text-primary">
                 {modal === "create" ? "New Campaign" : "Edit Campaign"}
@@ -264,7 +301,7 @@ export default function CampaignsClient({ initialCampaigns }) {
               <input type="checkbox" name="is_fundraiser" checked={form.is_fundraiser} onChange={handleChange} className="text-secondary w-4 h-4" />
               <div>
                 <span className="font-label-md text-label-md text-primary block">Time-Limited Fundraiser</span>
-                <span className="font-caption text-caption text-on-surface-variant">Shows countdown timer, accepts a poster from Drive</span>
+                <span className="font-caption text-caption text-on-surface-variant">Shows countdown timer, accepts a poster</span>
               </div>
             </label>
 
@@ -291,10 +328,10 @@ export default function CampaignsClient({ initialCampaigns }) {
               </div>
               <div>
                 <label className="form-label">Location</label>
-                <input name="location" className="form-input" value={form.location} onChange={handleChange} />
+                <input name="location" className="form-input" value={form.location} onChange={handleChange} placeholder="e.g. Visakhapatnam" />
               </div>
 
-              {/* Cover image — upload to Drive */}
+              {/* Cover image */}
               <div className="sm:col-span-2">
                 <label className="form-label">Cover Image</label>
                 <div className="flex gap-2">
@@ -327,11 +364,10 @@ export default function CampaignsClient({ initialCampaigns }) {
                     <label className="form-label">Urgency Label</label>
                     <input name="urgency_label" className="form-input" value={form.urgency_label} onChange={handleChange} placeholder="e.g. Ramadan Drive · 3 Days Only" />
                   </div>
-                  {/* Poster upload */}
                   <div className="sm:col-span-2">
-                    <label className="form-label">Fundraiser Poster (from Drive)</label>
+                    <label className="form-label">Fundraiser Poster</label>
                     <div className="flex gap-2">
-                      <input name="poster_url" className="form-input flex-1 text-sm" value={form.poster_url} onChange={handleChange} placeholder="Paste Drive URL or upload →" />
+                      <input name="poster_url" className="form-input flex-1 text-sm" value={form.poster_url} onChange={handleChange} placeholder="Paste URL or upload →" />
                       <label className="btn-primary cursor-pointer whitespace-nowrap">
                         <Upload className="w-4 h-4" />
                         {uploading ? "Uploading…" : "Upload Poster"}
@@ -354,7 +390,46 @@ export default function CampaignsClient({ initialCampaigns }) {
                 </div>
               )}
 
-              <div className="flex flex-col gap-3 pt-2">
+              {/* ── Visibility & Status checkboxes ───────────────────────────── */}
+              <div className="sm:col-span-2 space-y-3 pt-2 border-t border-outline-variant/30">
+                <p className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Visibility & Status</p>
+
+                <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-outline-variant/40 hover:bg-surface-container/50 transition-colors">
+                  <input
+                    type="checkbox" name="is_completed" checked={form.is_completed}
+                    onChange={handleChange} className="mt-0.5 text-secondary w-4 h-4 flex-shrink-0"
+                  />
+                  <div>
+                    <span className="font-body-md text-body-md text-on-surface block">Mark as Completed</span>
+                    <span className="font-caption text-caption text-on-surface-variant">
+                      Shows "Mission Completed" badge publicly. Hides all amounts. Donate button still visible.
+                    </span>
+                  </div>
+                </label>
+
+                <label className={[
+                  "flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors",
+                  form.is_completed
+                    ? "opacity-40 pointer-events-none border-outline-variant/20"
+                    : "border-outline-variant/40 hover:bg-surface-container/50",
+                ].join(" ")}>
+                  <input
+                    type="checkbox" name="show_public_stats" checked={form.show_public_stats}
+                    onChange={handleChange} disabled={form.is_completed}
+                    className="mt-0.5 text-secondary w-4 h-4 flex-shrink-0"
+                  />
+                  <div>
+                    <span className="font-body-md text-body-md text-on-surface block">Show fundraising details to public</span>
+                    <span className="font-caption text-caption text-on-surface-variant">
+                      Displays raised amount, goal, and progress bar on the public campaign page.
+                      Leave unchecked to hide all numbers.
+                    </span>
+                  </div>
+                </label>
+              </div>
+              {/* ─────────────────────────────────────────────────────────────── */}
+
+              <div className="flex flex-col gap-3 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" name="active" checked={form.active} onChange={handleChange} className="text-secondary" />
                   <span className="font-body-md text-body-md">Active</span>
@@ -364,13 +439,17 @@ export default function CampaignsClient({ initialCampaigns }) {
                   <span className="font-body-md text-body-md">Featured on homepage</span>
                 </label>
               </div>
+
               <div className="sm:col-span-2">
                 <label className="form-label">Description</label>
                 <textarea name="description" className="form-input h-28 resize-none" value={form.description} onChange={handleChange} />
               </div>
             </div>
+
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setModal(null)} className="flex-1 py-3 border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container transition-colors">Cancel</button>
+              <button onClick={() => setModal(null)} className="flex-1 py-3 border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container transition-colors">
+                Cancel
+              </button>
               <button onClick={handleSave} disabled={isPending || uploading} className="btn-primary flex-1 justify-center disabled:opacity-60">
                 {isPending ? "Saving…" : modal === "create" ? "Create" : "Save Changes"}
               </button>

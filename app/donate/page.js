@@ -29,13 +29,25 @@ export default function DonatePage() {
   const [showUPI,     setShowUPI] = useState(false);
   const [proofFile,   setProof]   = useState(null);
   const [uploading,   setUpload]  = useState(false);
+  const [recentDonors, setRecentDonors] = useState([
+    { name: "Anonymous", amt: "₹2,500", t: "Just now" },
+    { name: "Priya M.",  amt: "₹500",   t: "5 hours ago" },
+    { name: "Rajesh K.", amt: "₹1,000", t: "Yesterday" },
+  ]);
   const [form, setForm] = useState({
     donor_name: "", email: "", phone: "", campaign_name: "",
     comment: "", transaction_ref: "", proof_link: "",
   });
 
   // Scroll to top on page mount (fixes footer "Donate Now" not scrolling)
-  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, []);
+  // Also fetch real recent donors from DB
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    fetch("/api/donate/recent")
+      .then(r => r.json())
+      .then(data => { if (data.donors?.length) setRecentDonors(data.donors); })
+      .catch(() => {}); // fail silently — keeps placeholder data
+  }, []);
 
   const numAmt = Number(amount) || 0;
   const fee    = Math.round(numAmt * PLATFORM_FEE);
@@ -496,11 +508,7 @@ export default function DonatePage() {
                 {/* Recent donors */}
                 <div className="card p-5">
                   <p className="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-3">Recent Donors</p>
-                  {[
-                    { name: "Anonymous",  amt: "₹2,500", t: "2 hours ago" },
-                    { name: "Priya M.",   amt: "₹500",   t: "5 hours ago" },
-                    { name: "Rajesh K.",  amt: "₹1,000", t: "Yesterday"   },
-                  ].map((d, i) => (
+                  {recentDonors.map((d, i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-outline-variant/20 last:border-0">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-on-primary-fixed">{d.name[0]}</div>

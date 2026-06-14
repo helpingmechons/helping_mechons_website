@@ -29,54 +29,56 @@ export default async function CampaignDetailPage({ params }) {
     .eq("active", true)
     .single();
 
+  // Static fallback data — all existing campaigns are completed
   if (!campaign) {
     const FALLBACKS = {
       "emergency-medical-fund": {
         id: "1", title: "Emergency Medical Fund", slug: "emergency-medical-fund",
-        description: "We are raising funds to provide life-saving surgeries and primary care to families who cannot afford treatment. Every rupee goes directly toward medicines, doctor consultations, and emergency procedures.\n\nOur medical camps have already treated over 12,000 patients since 2020. With this campaign, we aim to support 200 more families requiring critical care.",
+        description: "We raised funds to provide life-saving surgeries and primary care to families who cannot afford treatment. Every rupee went directly toward medicines, doctor consultations, and emergency procedures.\n\nOur medical camps have treated over 12,000 patients since 2020. Thank you to everyone who donated to make this possible.",
         goal_amount: 500000, current_amount: 145000,
         cover_image_url: getPhoto("medical-support"), category: "medical",
         location: "Visakhapatnam", featured: true,
-        end_date: new Date(Date.now() + 90 * 86400000).toISOString(),
+        end_date: new Date(Date.now() - 10 * 86400000).toISOString(), // past date
         fundraiser_display_name: null,
+        is_completed: true, show_public_stats: false,
       },
       "daily-food-500-families": {
         id: "2", title: "Daily Food for 500 Families", slug: "daily-food-500-families",
-        description: "Our nightly food distribution reaches 500+ homeless individuals and families every single night. This is a sustained, continuous operation — not a one-time event.\n\nYour donation will help us buy ingredients, packaging materials, and fuel for our vehicles to keep this mission running every night without exception.",
+        description: "Our nightly food distribution reached 500+ homeless individuals and families every single night. This sustained, continuous operation ran without exception.\n\nThank you to all donors who kept this mission running.",
         goal_amount: 200000, current_amount: 87500,
         cover_image_url: getPhoto("food-distribution-1"), category: "food",
         location: "Visakhapatnam", featured: true,
-        end_date: new Date(Date.now() + 60 * 86400000).toISOString(),
+        end_date: new Date(Date.now() - 5 * 86400000).toISOString(), // past date
         fundraiser_display_name: null,
+        is_completed: true, show_public_stats: false,
       },
     };
     campaign = FALLBACKS[id] || null;
     if (!campaign) notFound();
   }
 
-  // Fetch donor comments
+  // Derive status
+  const pct         = Math.min(100, Math.round(((campaign.current_amount || 0) / (campaign.goal_amount || 1)) * 100));
+  const daysLeft    = campaign.end_date
+    ? Math.max(0, Math.ceil((new Date(campaign.end_date) - new Date()) / 86400000))
+    : null;
+  const isCompleted = campaign.is_completed || pct >= 100;
+  // Only show amounts/progress if admin explicitly enabled it AND campaign isn't completed
+  const showStats   = campaign.show_public_stats && !isCompleted;
+
+  // Donor comments
   const { data: comments = [] } = await supabase
     .from("fundraiser_comments")
-    .select("id, donor_name, comment, amount, created_at")
+    .select("id, donor_name, comment, created_at")
     .eq("campaign_id", campaign.id)
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(10);
 
-  const pct = Math.min(100, Math.round((campaign.current_amount / campaign.goal_amount) * 100)) || 0;
-  const daysLeft = campaign.end_date
-    ? Math.max(0, Math.ceil((new Date(campaign.end_date) - new Date()) / 86400000))
-    : null;
-
-  // Determine if campaign is completed
-  const isCompleted =
-    pct >= 100 ||
-    (campaign.end_date && new Date(campaign.end_date) < new Date() && pct > 0);
-
   // Related campaigns
   const { data: related = [] } = await supabase
     .from("campaigns")
-    .select("id, title, slug, cover_image_url, category")
+    .select("id, title, slug, cover_image_url, category, is_completed")
     .eq("active", true)
     .eq("category", campaign.category)
     .neq("id", campaign.id)
@@ -103,15 +105,17 @@ export default async function CampaignDetailPage({ params }) {
 
         {/* Hero Image */}
         <section className="relative h-64 md:h-96 overflow-hidden">
-          <Image src={campaign.cover_image_url || getPhoto("food-distribution-1")} alt={campaign.title}
-            fill className="object-cover" priority />
+          <Image
+            src={campaign.cover_image_url || getPhoto("food-distribution-1")}
+            alt={campaign.title} fill className="object-cover" priority
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent" />
           <div className="absolute bottom-6 left-0 right-0 section-container">
             <div className="flex flex-wrap gap-2 mb-2">
               <span className="badge bg-secondary text-on-secondary capitalize">{campaign.category}</span>
               {isCompleted && (
                 <span className="badge bg-primary-fixed text-on-primary-fixed flex items-center gap-1">
-                  <BadgeCheck className="w-3 h-3" /> Campaign Completed
+                  <BadgeCheck className="w-3 h-3" /> Mission Completed
                 </span>
               )}
             </div>
@@ -123,8 +127,10 @@ export default async function CampaignDetailPage({ params }) {
                 <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {campaign.location}</span>
               )}
               {!isCompleted && daysLeft !== null && (
-                <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />
-                  {daysLeft > 0 ? `${daysLeft} days left` : "Campaign closing soon"}</span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {daysLeft > 0 ? `${daysLeft} days left` : "Campaign closing soon"}
+                </span>
               )}
             </div>
           </div>
@@ -135,11 +141,11 @@ export default async function CampaignDetailPage({ params }) {
             {/* Left: Details */}
             <div className="lg:col-span-3 space-y-8">
 
-              {/* Status card — Completed vs Active */}
+              {/* ── Status card: Completed / Active with stats / Active without stats ── */}
               {isCompleted ? (
                 <div className="card p-6 border-l-4 border-secondary bg-surface-container-lowest">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                       <BadgeCheck className="w-5 h-5 text-on-secondary" />
                     </div>
                     <div>
@@ -147,11 +153,43 @@ export default async function CampaignDetailPage({ params }) {
                       <p className="text-caption text-on-surface-variant">This campaign has been successfully concluded.</p>
                     </div>
                   </div>
-                  <p className="text-body-md text-on-surface-variant mt-3">
-                    Thank you to everyone who contributed. You can still donate to support our ongoing work.
+                  <p className="text-body-md text-on-surface-variant">
+                    Thank you to everyone who contributed to this cause. You can still donate to support our ongoing work.
                   </p>
                 </div>
+              ) : showStats ? (
+                /* Active campaign with public stats enabled */
+                <div className="card p-6">
+                  <div className="flex justify-between text-body-md mb-3">
+                    <span className="text-on-surface-variant">Raised</span>
+                    <span className="text-secondary font-bold">{pct}%</span>
+                  </div>
+                  <div className="h-3 bg-surface-container-high rounded-full overflow-hidden mb-3">
+                    <div className="h-full bg-secondary rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-4 text-center">
+                    <div>
+                      <p className="font-headline font-bold text-headline-md text-secondary">
+                        ₹{Number(campaign.current_amount || 0).toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-caption text-on-surface-variant mt-1">Raised so far</p>
+                    </div>
+                    <div>
+                      <p className="font-headline font-bold text-headline-md text-primary">
+                        ₹{Number(campaign.goal_amount || 0).toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-caption text-on-surface-variant mt-1">Total Goal</p>
+                    </div>
+                    <div>
+                      <p className="font-headline font-bold text-headline-md text-primary">
+                        {daysLeft !== null ? `${daysLeft}d` : "∞"}
+                      </p>
+                      <p className="text-caption text-on-surface-variant mt-1">Days Left</p>
+                    </div>
+                  </div>
+                </div>
               ) : (
+                /* Active campaign, stats hidden */
                 <div className="card p-6">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-body-md text-on-surface-variant font-medium">Campaign Progress</span>
@@ -161,7 +199,6 @@ export default async function CampaignDetailPage({ params }) {
                       </span>
                     )}
                   </div>
-                  {/* Simple progress bar — no amounts */}
                   <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
                     <div className="h-full bg-secondary rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
                   </div>
@@ -172,7 +209,7 @@ export default async function CampaignDetailPage({ params }) {
               {/* About */}
               <div>
                 <h2 className="font-headline text-headline-md text-primary mb-4">About This Campaign</h2>
-                <div className="prose prose-ngo space-y-4">
+                <div className="space-y-4">
                   {(campaign.description || "").split("\n\n").map((para, i) => (
                     <p key={i} className="text-body-lg text-on-surface-variant leading-relaxed">{para}</p>
                   ))}
@@ -285,20 +322,25 @@ export default async function CampaignDetailPage({ params }) {
           </div>
         </section>
 
-        {/* Related Campaigns — no amounts */}
+        {/* Related Campaigns */}
         {related.length > 0 && (
           <section className="py-section-padding bg-surface-container-low">
             <div className="section-container">
-              <h2 className="font-headline text-headline-md text-primary mb-6">Other Active Campaigns</h2>
+              <h2 className="font-headline text-headline-md text-primary mb-6">Other Campaigns</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
                 {related.map(c => (
                   <Link key={c.id} href={`/campaigns/${c.slug || c.id}`} className="card group hover:shadow-lift transition-shadow">
                     <div className="relative h-40 overflow-hidden">
                       <Image src={c.cover_image_url || getPhoto("food-distribution-1")} alt={c.title}
                         fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      {c.is_completed && (
+                        <span className="absolute top-2 left-2 badge bg-primary-fixed text-on-primary-fixed text-xs flex items-center gap-1">
+                          <BadgeCheck className="w-3 h-3" /> Completed
+                        </span>
+                      )}
                     </div>
                     <div className="p-4">
-                      <h3 className="font-headline font-semibold text-on-surface text-body-lg mb-3 line-clamp-2">{c.title}</h3>
+                      <h3 className="font-headline font-semibold text-on-surface text-body-lg mb-2 line-clamp-2">{c.title}</h3>
                       <span className="text-caption text-secondary font-semibold">Donate to This Cause →</span>
                     </div>
                   </Link>
