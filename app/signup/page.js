@@ -30,10 +30,20 @@ export default function SignupPage() {
     if (err) { toast.error(err); return; }
     setLoading(true);
     const supabase = createClient();
+
+    // Use NEXT_PUBLIC_SITE_URL so the confirmation email links to production,
+    // not localhost:3000. This fixes the "site can't be reached" error.
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+
     const { error } = await supabase.auth.signUp({
       email:    form.email,
       password: form.password,
-      options:  { data: { full_name: form.full_name, role: "donor" } },
+      options:  {
+        data:            { full_name: form.full_name, role: "donor" },
+        emailRedirectTo: `${siteUrl}/login`,
+      },
     });
     if (error) {
       toast.error(error.message);
@@ -54,6 +64,9 @@ export default function SignupPage() {
           <p className="text-body-md text-on-surface-variant mb-6">
             We've sent a confirmation link to <strong>{form.email}</strong>.
             Click it to activate your account and start donating.
+          </p>
+          <p className="text-caption text-on-surface-variant mb-6">
+            If you don't see it within a few minutes, check your spam folder.
           </p>
           <Link href="/login" className="btn-primary inline-flex">Go to Login</Link>
         </div>

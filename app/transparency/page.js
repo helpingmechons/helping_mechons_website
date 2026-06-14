@@ -3,64 +3,49 @@ import { getPhoto } from "@/lib/images/drivePhotos";
 import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { createClient } from "@/lib/supabase/server";
-import { CheckCircle, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
-export const metadata = { title: "Transparency & Trust — Every Dollar Accounted For" };
+export const metadata = { title: "Transparency & Trust — How We Work" };
 
+// Missions — amounts removed per org preference
 const MISSIONS = [
-  { id: "HM-2024-08A", tag: "DELIVERED", title: "Hyderabad Night Food Drive",   img: getPhoto("food-distribution-1"), desc: "Nightly hot meal distribution to 1,200+ homeless individuals across old city Hyderabad — running every weekend since 2020.", funds: "₹7,20,000" },
-  { id: "HM-2024-09C", tag: "DELIVERED", title: "Tribal School Support — Adilabad", img: getPhoto("education-support"), desc: "School supply kits, uniforms, and digital learning tools delivered to 6 government schools serving tribal children in Adilabad district.", funds: "₹1,85,000" },
-  { id: "HM-2024-11F", tag: "DELIVERED", title: "Medical Camp — Rural Telangana", img: getPhoto("medical-support"), desc: "Free health check-ups, medicines, and specialist consultations provided to 3,000+ patients across 4 villages in Nalgonda and Mahbubnagar.", funds: "₹4,50,000" },
+  { id: "HM-2024-08A", tag: "DELIVERED", title: "Hyderabad Night Food Drive",
+    img: getPhoto("food-distribution-1"),
+    desc: "Nightly hot meal distribution to 1,200+ homeless individuals across old city Hyderabad — running every weekend since 2020." },
+  { id: "HM-2024-09C", tag: "DELIVERED", title: "Tribal School Support — Adilabad",
+    img: getPhoto("education-support"),
+    desc: "School supply kits, uniforms, and digital learning tools delivered to 6 government schools serving tribal children in Adilabad district." },
+  { id: "HM-2024-11F", tag: "DELIVERED", title: "Medical Camp — Rural Telangana",
+    img: getPhoto("medical-support"),
+    desc: "Free health check-ups, medicines, and specialist consultations provided to 3,000+ patients across 4 villages in Nalgonda and Mahbubnagar." },
 ];
 
 export default async function TransparencyPage() {
-  const supabase = createClient();
-  const { data: summary } = await supabase.from("public_donation_summary").select("*").single();
-  const totalRaised = Number(summary?.total_raised || 0);
-  const totalDon    = Number(summary?.total_donations || 0);
-
   return (
     <>
       <Navbar />
       <main>
 
-        {/* ── Hero: 2-column — text LEFT + image RIGHT ── */}
+        {/* ── Hero ── */}
         <section className="py-section-padding bg-background">
           <div className="section-container grid grid-cols-1 lg:grid-cols-2 gap-gutter items-center">
             <div className="space-y-5">
-              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md">REAL-TIME IMPACT</span>
+              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md">OUR COMMITMENT</span>
               <h1 className="font-headline-xl-mobile font-headline-xl text-headline-xl-mobile md:font-headline-xl text-headline-xl text-primary leading-tight">
-                Every dollar accounted for. Every life honored.
+                Every rupee accounted for. Every life honored.
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
-                At Helping Mechons, we believe trust is built on transparency. Our live impact dashboard provides
-                a direct window into how your contributions are being deployed on the front lines of humanitarian aid.
+                At Helping Mechons, we believe trust is built on transparency. We document every mission,
+                every deployment, and every outcome — so you always know where your generosity goes.
               </p>
             </div>
             <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
-              <Image src={getPhoto("old-age-care")}  alt="Helping Mechons transparency in action" fill className="object-cover" />
+              <Image src={getPhoto("old-age-care")} alt="Helping Mechons transparency in action" fill className="object-cover" />
             </div>
           </div>
         </section>
 
-        {/* ── Live stats: 3 cards on dark ── */}
-        <section className="bg-primary py-14">
-          <div className="section-container grid grid-cols-1 md:grid-cols-3 gap-gutter">
-            {[
-              { stat: totalRaised > 0 ? `₹${Number(totalRaised).toLocaleString("en-IN")}` : "₹1.4Cr+", label: "Total Funds Raised"  },
-              { stat: totalDon > 0    ? `${totalDon}+`                                     : "8,42,000+", label: "People Helped"     },
-              { stat: "21,05,800",                                                                         label: "Meals Delivered"  },
-            ].map(({ stat, label }) => (
-              <div key={label} className="bg-primary-container rounded-xl p-8 text-center border border-primary-container">
-                <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-secondary-container">{stat}</p>
-                <p className="font-label-md text-label-md text-on-primary-container uppercase tracking-widest mt-3">{label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Fund Allocation + Growth Chart side-by-side ── */}
+        {/* ── Fund Allocation + Growth Chart ── */}
         <section className="py-section-padding bg-background">
           <div className="section-container grid grid-cols-1 md:grid-cols-2 gap-gutter">
             {/* Fund Allocation */}
@@ -85,11 +70,11 @@ export default async function TransparencyPage() {
               ))}
               <p className="font-caption text-caption text-on-surface-variant mt-4 italic">
                 *Helping Mechons maintains a 0% internal expense policy for public donations;
-                operational costs are covered by separate private endowment.
+                operational costs are covered by a separate private endowment.
               </p>
             </div>
 
-            {/* Growth of Impact (bar chart simulation) */}
+            {/* Growth of Impact */}
             <div className="card p-8">
               <h3 className="font-headline font-semibold text-primary mb-6 flex items-center gap-2">
                 ↗ Growth of Impact
@@ -117,7 +102,7 @@ export default async function TransparencyPage() {
           </div>
         </section>
 
-        {/* ── Completed Missions Log*/}
+        {/* ── Completed Missions Log ── */}
         <section className="py-section-padding bg-surface-container-low">
           <div className="section-container">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
@@ -144,11 +129,7 @@ export default async function TransparencyPage() {
                   <div className="p-5">
                     <h3 className="font-headline font-semibold text-on-surface mb-2">{m.title}</h3>
                     <p className="font-body-md text-body-md text-on-surface-variant text-sm mb-4 leading-relaxed">{m.desc}</p>
-                    <div className="flex items-center justify-between pt-3 border-t border-outline-variant/30">
-                      <div>
-                        <p className="font-caption text-caption text-on-surface-variant uppercase tracking-wider">Funds Applied</p>
-                        <p className="font-label-md text-label-md font-semibold text-on-surface">{m.funds}</p>
-                      </div>
+                    <div className="flex items-center justify-end pt-3 border-t border-outline-variant/30">
                       <button className="p-2 rounded-lg text-secondary hover:bg-secondary-fixed/30 transition-colors">
                         <ExternalLink className="w-4 h-4" />
                       </button>
@@ -160,7 +141,7 @@ export default async function TransparencyPage() {
           </div>
         </section>
 
-        {/* ── CTA with 2 buttons*/}
+        {/* ── CTA ── */}
         <section className="py-20 bg-surface-container">
           <div className="section-container max-w-3xl mx-auto text-center">
             <h2 className="font-headline-lg text-headline-lg text-primary mb-4">
@@ -172,11 +153,11 @@ export default async function TransparencyPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/donate" className="btn-primary px-10 py-4 text-base">
-                Start Monthly Donation
+                Donate Now
               </Link>
-              <Link href="/transparency"
+              <Link href="/campaigns"
                 className="border-2 border-primary text-primary px-10 py-4 rounded-lg font-semibold font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-all">
-                View Annual Report
+                View Campaigns
               </Link>
             </div>
           </div>
