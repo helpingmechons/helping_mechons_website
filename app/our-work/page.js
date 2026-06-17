@@ -106,10 +106,10 @@ export default function OurWorkPage() {
         <section className="py-16 bg-primary">
           <div className="section-container grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { stat: "1.2M+", label: "Meals Delivered"   },
-              { stat: "45k",   label: "Medical Consults"  },
-              { stat: "280+",  label: "Active Schools"    },
-              { stat: "98%",   label: "Fund Transparency" },
+              { stat: "500+", label: "Meals Delivered"   },
+              { stat: "30+",   label: "Medical Consults"  },
+              { stat: "50+",  label: "Education Kits"    },
+              { stat: "100%",   label: "Fund Transparency" },
             ].map(({ stat, label }) => (
               <div key={label}>
                 <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-secondary-container">{stat}</p>
