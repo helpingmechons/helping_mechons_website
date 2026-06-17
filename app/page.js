@@ -35,7 +35,7 @@ export default async function HomePage() {
         {/* ── HERO ── */}
         <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <Image src={getPhoto("food-distribution-1")} alt="Helping Mechons volunteers" fill className="object-cover" priority quality={90} />
+            <Image src={getPhoto("food-distribution-1")} alt="Helping Mechons volunteers" fill className="object-cover" priority quality={80} />
             <div className="absolute inset-0 hero-gradient" />
           </div>
           <div className="relative z-10 section-container text-center py-24">

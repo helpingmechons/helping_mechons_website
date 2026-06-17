@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Download, Edit3, Lock, LogOut, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Heart, Download, Edit3, Lock, LogOut, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -18,8 +18,11 @@ const ACHIEVEMENTS = [
   { icon: "💧", label: "Water Guardian",   sublabel: "Unlock at ₹15k",         unlocked: false },
 ];
 
+const RECENT_LIMIT = 5;
+
 export default function ProfileClient({ user, profile, donations, totalApproved }) {
   const [tab,      setTab]      = useState("history");
+  const [showAll,  setShowAll]  = useState(false);
   const [editForm, setEditForm] = useState({ full_name: profile?.full_name || "", phone: profile?.phone || "", display_name: profile?.display_name || "" });
   const [pwForm,   setPwForm]   = useState({ newPwd: "", confirm: "" });
   const [saving,   setSaving]   = useState(false);
@@ -54,10 +57,13 @@ export default function ProfileClient({ user, profile, donations, totalApproved 
     { id: "password", label: "Security",          icon: <Lock className="w-4 h-4" />   },
   ];
 
+  const visibleDonations = showAll ? donations : donations.slice(0, RECENT_LIMIT);
+  const hasMore = donations.length > RECENT_LIMIT;
+
   return (
     <main className="bg-background min-h-screen">
 
-      {/* ── Profile hero*/}
+      {/* ── Profile hero */}
       <section className="bg-background border-b border-outline-variant/30 py-8">
         <div className="section-container">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-8">
@@ -75,13 +81,18 @@ export default function ProfileClient({ user, profile, donations, totalApproved 
               <button onClick={() => setTab("edit")} className="btn-primary py-2.5 px-5 text-sm">
                 <Edit3 className="w-4 h-4" /> Edit Profile
               </button>
-              <button className="flex items-center gap-2 border-2 border-outline-variant text-on-surface-variant px-5 py-2.5 rounded-lg text-label-md hover:border-primary hover:text-primary transition-all text-sm">
+              {/* Tax receipt — disabled until feature is ready */}
+              <button
+                disabled
+                title="Tax receipt download coming soon"
+                className="flex items-center gap-2 border-2 border-outline-variant/40 text-on-surface-variant/40 px-5 py-2.5 rounded-lg text-label-md cursor-not-allowed select-none text-sm"
+              >
                 <Download className="w-4 h-4" /> Download Tax Receipt
               </button>
             </div>
           </div>
 
-          {/* 3-stat cards*/}
+          {/* 3-stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="stat-card">
               <p className="text-caption text-secondary uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -110,7 +121,7 @@ export default function ProfileClient({ user, profile, donations, totalApproved 
             </div>
           </div>
 
-          {/* ── Impact Achievements*/}
+          {/* ── Impact Achievements */}
           <div>
             <h2 className="font-headline font-semibold text-primary mb-4">Your Impact Achievements</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -136,26 +147,54 @@ export default function ProfileClient({ user, profile, donations, totalApproved 
       {/* ── Tabs ── */}
       <section className="py-10">
         <div className="section-container max-w-4xl mx-auto">
-          <div className="flex flex-wrap gap-1 mb-8 border-b border-outline-variant/30">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-5 py-3 text-label-md font-medium border-b-2 -mb-px transition-all ${tab === t.id ? "border-secondary text-secondary" : "border-transparent text-on-surface-variant hover:text-on-surface"}`}>
-                {t.icon} {t.label}
+
+          {/* Tab bar — scrollable on mobile, always shows logout on right */}
+          <div className="mb-8 border-b border-outline-variant/30">
+            <div className="flex items-center">
+              {/* Scrollable tab buttons */}
+              <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0"
+                   style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                {tabs.map(t => (
+                  <button key={t.id} onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-2 px-4 py-3 text-label-md font-medium border-b-2 -mb-px transition-all whitespace-nowrap flex-shrink-0 ${
+                      tab === t.id
+                        ? "border-secondary text-secondary"
+                        : "border-transparent text-on-surface-variant hover:text-on-surface"
+                    }`}>
+                    {t.icon} {t.label}
+                  </button>
+                ))}
+              </div>
+              {/* Logout — always visible on right */}
+              <button onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-3 text-label-md font-medium text-on-surface-variant hover:text-secondary transition-colors whitespace-nowrap flex-shrink-0 border-b-2 border-transparent -mb-px">
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
-            ))}
-            <button onClick={handleLogout}
-              className="flex items-center gap-2 px-5 py-3 text-label-md font-medium text-on-surface-variant hover:text-secondary transition-colors ml-auto">
-              <LogOut className="w-4 h-4" /> Logout
-            </button>
+            </div>
           </div>
 
           {/* History */}
           {tab === "history" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-headline font-semibold text-primary">Recent Donations</h3>
-                <button className="text-secondary text-label-md hover:opacity-80">View All Records</button>
+                <h3 className="font-headline font-semibold text-primary">
+                  {showAll ? "All Donations" : "Recent Donations"}
+                </h3>
+                {donations.length > 0 && hasMore && (
+                  <button
+                    onClick={() => setShowAll(v => !v)}
+                    className="flex items-center gap-1 text-secondary text-label-md hover:opacity-80 transition-opacity"
+                  >
+                    {showAll ? (
+                      <><ChevronUp className="w-4 h-4" /> Show Less</>
+                    ) : (
+                      <><ChevronDown className="w-4 h-4" /> View All Records</>
+                    )}
+                  </button>
+                )}
               </div>
+
               {donations.length === 0 ? (
                 <div className="card p-12 text-center">
                   <Heart className="w-10 h-10 text-outline-variant mx-auto mb-4" />
@@ -163,29 +202,47 @@ export default function ProfileClient({ user, profile, donations, totalApproved 
                   <p className="text-body-md text-on-surface-variant mb-6">Make your first donation and help change a life.</p>
                   <a href="/donate" className="btn-primary inline-flex">Donate Now</a>
                 </div>
-              ) : donations.map(d => {
-                const s = STATUS[d.status] || STATUS.pending;
-                return (
-                  <div key={d.id} className="card p-5 flex flex-col sm:flex-row justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
-                        <Heart className="w-5 h-5 text-on-primary-fixed" />
+              ) : (
+                <>
+                  {visibleDonations.map(d => {
+                    const s = STATUS[d.status] || STATUS.pending;
+                    return (
+                      <div key={d.id} className="card p-5 flex flex-col sm:flex-row justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                            <Heart className="w-5 h-5 text-on-primary-fixed" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-on-surface">{d.is_anonymous ? "Anonymous Donation" : d.donor_name}</p>
+                            <p className="text-caption text-on-surface-variant mt-0.5">
+                              {new Date(d.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                              {d.transaction_ref ? ` · ${d.transaction_ref}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+                          <p className="font-headline font-bold text-headline-md text-secondary">₹{Number(d.final_amount || d.amount).toLocaleString("en-IN")}</p>
+                          <span className={`badge ${s.class} flex items-center gap-1`}>{s.icon} {s.label}</span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-on-surface">{d.is_anonymous ? "Anonymous Donation" : d.donor_name}</p>
-                        <p className="text-caption text-on-surface-variant mt-0.5">
-                          {new Date(d.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
-                          {d.transaction_ref ? ` · ${d.transaction_ref}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-                      <p className="font-headline font-bold text-headline-md text-secondary">₹{Number(d.final_amount || d.amount).toLocaleString("en-IN")}</p>
-                      <span className={`badge ${s.class} flex items-center gap-1`}>{s.icon} {s.label}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+
+                  {/* Inline toggle if more records exist */}
+                  {hasMore && (
+                    <button
+                      onClick={() => setShowAll(v => !v)}
+                      className="w-full py-3 border border-dashed border-outline-variant text-on-surface-variant hover:border-secondary hover:text-secondary rounded-xl text-label-md transition-all flex items-center justify-center gap-2"
+                    >
+                      {showAll ? (
+                        <><ChevronUp className="w-4 h-4" /> Show fewer donations</>
+                      ) : (
+                        <><ChevronDown className="w-4 h-4" /> View all {donations.length} donations</>
+                      )}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           )}
 

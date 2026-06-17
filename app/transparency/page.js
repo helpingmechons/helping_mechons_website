@@ -40,7 +40,7 @@ export default async function TransparencyPage() {
               </p>
             </div>
             <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
-              <Image src={getPhoto("old-age-care")} alt="Helping Mechons transparency in action" fill className="object-cover" />
+              <Image src={getPhoto("old-age-care")} alt="Helping Mechons transparency in action" fill quality={75} sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
             </div>
           </div>
         </section>
@@ -76,28 +76,47 @@ export default async function TransparencyPage() {
 
             {/* Growth of Impact */}
             <div className="card p-8">
-              <h3 className="font-headline font-semibold text-primary mb-6 flex items-center gap-2">
+              <h3 className="font-headline font-semibold text-primary mb-1 flex items-center gap-2">
                 ↗ Growth of Impact
               </h3>
-              <div className="flex items-end justify-between gap-3 h-40">
+              <p className="text-caption text-on-surface-variant mb-5">People served year over year</p>
+
+              {/* Bar Chart */}
+              <div
+                className="flex items-end justify-between gap-2 px-1 pb-0"
+                style={{ height: "180px", borderBottom: "2px solid #c4c6cd", borderLeft: "2px solid #c4c6cd" }}
+              >
                 {[
-                  { year: "2018", h: "20%"  },
-                  { year: "2020", h: "35%"  },
-                  { year: "2021", h: "50%"  },
-                  { year: "2022", h: "65%"  },
-                  { year: "2023", h: "80%"  },
-                  { year: "Current", h: "100%", highlight: true },
-                ].map(({ year, h, highlight }) => (
-                  <div key={year} className="flex flex-col items-center gap-2 flex-1">
+                  { year: "2018", value: "50+",   pct: 10, color: "#b7c8de" },
+                  { year: "2020", value: "200+",  pct: 28, color: "#8eaac8" },
+                  { year: "2021", value: "500+",  pct: 44, color: "#5b8db0" },
+                  { year: "2022", value: "800+",  pct: 62, color: "#3b6f90" },
+                  { year: "2023", value: "1000+", pct: 78, color: "#1a5270" },
+                  { year: "Now",  value: "1500+", pct: 100, color: "#9a442d" },
+                ].map(({ year, value, pct, color }) => (
+                  <div key={year} className="flex flex-col items-center flex-1 gap-1">
+                    <span className="text-xs font-bold leading-none mb-1" style={{ color }}>{value}</span>
                     <div
-                      className={`w-full rounded-t-lg transition-all duration-700 ${highlight ? "bg-secondary" : "bg-surface-container-high"}`}
-                      style={{ height: h }}
+                      className="w-full rounded-t-md"
+                      style={{ height: `${pct}%`, backgroundColor: color, transition: "height 1s ease" }}
                     />
-                    <span className="font-caption text-caption text-on-surface-variant text-xs">{year}</span>
+                    <span className="text-xs text-on-surface-variant mt-1.5 text-center leading-tight">{year}</span>
                   </div>
                 ))}
               </div>
-              <p className="font-caption text-caption text-on-surface-variant mt-4">Year-over-year humanitarian reach expansion</p>
+
+              {/* Legend */}
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#b7c8de" }} />
+                  <span className="text-xs text-on-surface-variant">2018–2022</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#9a442d" }} />
+                  <span className="text-xs text-on-surface-variant">Current reach</span>
+                </div>
+              </div>
+              <p className="font-caption text-caption text-on-surface-variant mt-2">Year-over-year humanitarian reach expansion</p>
             </div>
           </div>
         </section>
@@ -118,7 +137,7 @@ export default async function TransparencyPage() {
               {MISSIONS.map(m => (
                 <div key={m.id} className="card overflow-hidden group">
                   <div className="relative h-48 overflow-hidden">
-                    <Image src={m.img} alt={m.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={m.img} alt={m.title} fill quality={70} sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute top-3 left-3">
                       <span className="badge bg-primary-fixed text-on-primary-fixed">ID: {m.id}</span>
                     </div>

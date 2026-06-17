@@ -16,16 +16,16 @@ const TIMELINE = [
 
 const VALUES = [
   { icon: "🤝", title: "Unwavering Ethics",    desc: "We operate with surgical precision and absolute moral clarity in every mission we undertake." },
-  { icon: "🔍", title: "Radical Transparency", desc: "82 cents of every rupee goes directly to the field. Our finances are open and audited regularly." },
+  { icon: "🔍", title: "Radical Transparency", desc: "100% of every rupee goes directly to the field. Our finances are open and audited regularly." },
   { icon: "💡", title: "Innovative Care",      desc: "Leveraging technology to bring quality care to the most hard-to-reach areas." },
   { icon: "🌱", title: "Sustainable Impact",   desc: "We don't just leave after the crisis. We build infrastructure and train local helpers to sustain the healing." },
 ];
 
 const TEAM = [
-  { initials: "FM", name: "Founder",           role: "Chief Humanitarian Officer", img: getPhoto("education-support")    },
-  { initials: "SC", name: "Operations Lead",   role: "Head of Field Logistics",    img: getPhoto("food-distribution-1")  },
-  { initials: "MT", name: "Medical Director",  role: "Health Program Director",    img: getPhoto("medical-support")     },
-  { initials: "LR", name: "Transparency Lead", role: "Ethics & Accountability",    img: getPhoto("old-age-care")        },
+  { initials: "FM", name: "Founder",           role: "Chief Humanitarian Officer", img: getPhoto("education-support", 400)    },
+  { initials: "SC", name: "Operations Lead",   role: "Head of Field Logistics",    img: getPhoto("food-distribution-1", 400)  },
+  { initials: "MT", name: "Medical Director",  role: "Health Program Director",    img: getPhoto("medical-support", 400)     },
+  { initials: "LR", name: "Transparency Lead", role: "Ethics & Accountability",    img: getPhoto("old-age-care", 400)        },
 ];
 
 export default function AboutPage() {
@@ -56,6 +56,8 @@ export default function AboutPage() {
               <Image
                 src={getPhoto("medical-support")} alt="Helping Mechons team in action"
                 width={600} height={480}
+                quality={75}
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="rounded-2xl w-full object-cover shadow-xl"
               />
               <div className="absolute bottom-6 left-6 bg-secondary text-on-secondary px-5 py-3 rounded-xl shadow-md">
@@ -98,6 +100,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
               <div className="md:col-span-1">
                 <Image src={getPhoto("education-support")} alt="Founder" width={400} height={500}
+                  quality={75} sizes="(max-width: 768px) 100vw, 33vw"
                   className="rounded-2xl object-cover w-full shadow-md" />
               </div>
               <div className="md:col-span-2 space-y-5">
@@ -157,13 +160,13 @@ export default function AboutPage() {
         {/* ── Image strip ── */}
         <section className="grid grid-cols-1 md:grid-cols-2 h-72 md:h-96">
           <div className="relative overflow-hidden">
-            <Image src={getPhoto("food-distribution-2")} alt="Field operations" fill className="object-cover" />
+            <Image src={getPhoto("food-distribution-2")} alt="Field operations" fill quality={70} sizes="50vw" className="object-cover" />
             <div className="absolute inset-0 bg-primary/40 flex items-end p-6">
               <p className="text-on-primary font-headline font-semibold">Food Distribution</p>
             </div>
           </div>
           <div className="relative overflow-hidden">
-            <Image src={getPhoto("grocery-support")} alt="Grocery support" fill className="object-cover" />
+            <Image src={getPhoto("grocery-support")} alt="Grocery support" fill quality={70} sizes="50vw" className="object-cover" />
             <div className="absolute inset-0 bg-primary/40 flex items-end p-6">
               <p className="text-on-primary font-headline font-semibold">Grocery Support</p>
             </div>
@@ -188,7 +191,7 @@ export default function AboutPage() {
               {TEAM.map(({ initials, name, role, img }) => (
                 <div key={name} className="card overflow-hidden group">
                   <div className="relative h-52 overflow-hidden">
-                    <Image src={img} alt={name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={img} alt={name} fill quality={70} sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                   <div className="p-4">
                     <p className="font-headline font-semibold text-on-surface">{name}</p>
@@ -211,7 +214,7 @@ export default function AboutPage() {
               </p>
               <ul className="space-y-4">
                 {[
-                  { label: "82% Aid Efficiency",         desc: "Direct aid as a share of all spending." },
+                  { label: "100% Fund Utilisation",      desc: "Every rupee of public donation goes directly to the field — zero admin deductions." },
                   { label: "Real-time Field Updates",    desc: "Mission logs updated directly by our field teams." },
                   { label: "Verified Donation Records",  desc: "Every donation manually reviewed and receipted." },
                 ].map(({ label, desc }) => (
@@ -228,10 +231,9 @@ export default function AboutPage() {
             <div>
               <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-4">Where Your Donation Goes</p>
               {[
-                { label: "Medical Supplies",   pct: 45, color: "bg-blue-500"   },
-                { label: "Food & Nutrition",   pct: 32, color: "bg-orange-400" },
+                { label: "Medical Supplies",   pct: 50, color: "bg-blue-500"   },
+                { label: "Food & Nutrition",   pct: 35, color: "bg-orange-400" },
                 { label: "Field Operations",   pct: 15, color: "bg-green-500"  },
-                { label: "Administration",     pct: 8,  color: "bg-gray-400"   },
               ].map(({ label, pct, color }) => (
                 <div key={label} className="mb-4">
                   <div className="flex justify-between font-body-md text-body-md mb-1">
