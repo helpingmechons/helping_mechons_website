@@ -171,7 +171,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-caption text-on-primary-container mb-2 uppercase tracking-wider">Amount (₹)</p>
-                <input type="number" placeholder="0.00" onWheel={e => e.target.blur()}
+                <input type="number" placeholder="0.00"
                   className="w-full bg-primary-container border border-outline-variant/20 text-on-primary rounded-lg px-4 py-3 text-body-md placeholder:text-on-primary-container/50 focus:outline-none focus:ring-1 focus:ring-secondary" />
               </div>
               <div>
