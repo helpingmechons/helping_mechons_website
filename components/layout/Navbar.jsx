@@ -65,13 +65,25 @@ export default function Navbar() {
     >
       <nav className="section-container flex items-center justify-between h-16 md:h-18">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-          <img
-            src="/brand/logo-full.png"
-            alt="Helping Mechons"
-            className="h-12 md:h-14 w-auto object-contain"
-          />
-        </Link>
+        // <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
+          // <img
+            // src="/brand/logo-full.png"
+            // alt="Helping Mechons"
+            // className="h-12 md:h-14 w-auto object-contain"
+          // />
+        // </Link>
+		<Link href="/" className="flex items-center gap-2 group flex-shrink-0">
+		  <img
+			src="/brand/logo-full.png"
+			alt="Helping Mechons"
+			className="h-10 md:h-12 w-auto object-contain"
+		  />
+
+		  <span className="font-headline font-bold text-headline-md text-primary leading-none">
+			Helping<br />
+			<span className="text-secondary">Mechons</span>
+		  </span>
+		</Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6 text-body-md">

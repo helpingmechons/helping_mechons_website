@@ -59,7 +59,7 @@ export default function AboutPage() {
                 className="rounded-2xl w-full object-cover shadow-xl"
               />
               <div className="absolute bottom-6 left-6 bg-secondary text-on-secondary px-5 py-3 rounded-xl shadow-md">
-                <p className="font-headline-lg font-bold text-headline-lg">1.2M+</p>
+                <p className="font-headline-lg font-bold text-headline-lg">100+</p>
                 <p className="font-caption text-caption text-on-secondary uppercase tracking-wider">Lives Impacted</p>
               </div>
             </div>
