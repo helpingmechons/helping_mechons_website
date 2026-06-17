@@ -29,11 +29,12 @@ const TESTIMONIALS = [
 
 export default async function HomePage() {
   const supabase = createClient();
-  const { data: campaigns = [] } = await supabase
+  const { data: campaignsData } = await supabase
     .from("campaigns")
     .select("id, title, slug, description, goal_amount, current_amount, cover_image_url, category, location")
     .eq("active", true).eq("featured", true)
     .order("created_at", { ascending: false }).limit(3);
+  const campaigns = campaignsData ?? [];
 
   return (
     <>

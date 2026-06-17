@@ -69,23 +69,35 @@ export default async function CampaignDetailPage({ params }) {
   // Show stats when: admin enabled it (active) OR campaign is completed (always show final tally)
   const showStats   = campaign.show_public_stats || isCompleted;
 
-  // Donor comments
-  const { data: comments = [] } = await supabase
-    .from("fundraiser_comments")
-    .select("id, donor_name, comment, created_at")
-    .eq("campaign_id", campaign.id)
-    .eq("is_public", true)
-    .order("created_at", { ascending: false })
-    .limit(10);
+  // Donor comments — skip the query entirely for static fallback campaigns,
+  // since their id ("1", "2") isn't a real UUID and would error against the
+  // uuid-typed campaign_id column (Supabase then returns data: null, and the
+  // `= []` destructure default does NOT apply to null — only to undefined —
+  // which is what caused the "Cannot read properties of null (reading 'length')" crash).
+  const isRealCampaign = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(campaign.id);
+
+  let comments = [];
+  if (isRealCampaign) {
+    const { data } = await supabase
+      .from("fundraiser_comments")
+      .select("id, donor_name, comment, created_at")
+      .eq("campaign_id", campaign.id)
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    comments = data ?? [];
+  }
 
   // Related campaigns
-  const { data: related = [] } = await supabase
+  let relatedQuery = supabase
     .from("campaigns")
     .select("id, title, slug, cover_image_url, category, is_completed")
     .eq("active", true)
     .eq("category", campaign.category)
-    .neq("id", campaign.id)
     .limit(3);
+  if (isRealCampaign) relatedQuery = relatedQuery.neq("id", campaign.id);
+  const { data: relatedData } = await relatedQuery;
+  const related = relatedData ?? [];
 
   const PHOTO_GRID = [
     campaign.cover_image_url || getPhoto("food-distribution-1"),

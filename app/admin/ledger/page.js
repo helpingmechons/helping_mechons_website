@@ -5,11 +5,12 @@ export const metadata = { title: "Ledger / Finance" };
 
 export default async function AdminLedgerPage() {
   const supabase = createClient();
-  const { data: entries = [] } = await supabase
+  const { data: entriesData } = await supabase
     .from("ledger_entries")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(100);
+  const entries = entriesData ?? [];
 
   const credits = entries.filter(e => e.type === "credit").reduce((s, e) => s + Number(e.amount), 0);
   const debits  = entries.filter(e => e.type === "debit").reduce((s,  e) => s + Number(e.amount), 0);

@@ -30,7 +30,8 @@ export default async function CampaignsPage({ searchParams }) {
     .order("created_at",  { ascending: false });
 
   if (cat !== "all") query = query.eq("category", cat);
-  const { data: campaigns = [] } = await query;
+  const { data: campaignsData } = await query;
+  const campaigns = campaignsData ?? [];
 
   // Static fallback — ALL marked as completed since they're existing/done campaigns
   const items = campaigns.length > 0 ? campaigns : [

@@ -7,11 +7,12 @@ export default async function AdminUsersPage() {
   const adminSb = createAdminClient();
 
   // Get all profiles (only confirmed accounts exist after migration 003)
-  const { data: profiles = [] } = await adminSb
+  const { data: profilesData } = await adminSb
     .from("profiles")
     .select("id, full_name, phone, role, must_change_password, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
+  const profiles = profilesData ?? [];
 
   // Fetch auth.users to get email + confirmation status
   // (requires service role — never expose this to client)
