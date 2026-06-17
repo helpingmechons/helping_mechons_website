@@ -6,7 +6,8 @@ export const metadata = { title: "User Management" };
 export default async function AdminUsersPage() {
   const adminSb = createAdminClient();
 
-  // Get all profiles (only confirmed accounts exist after migration 003)
+  // Get all profiles (filtered to confirmed-only below — migration 003
+  // reduces but does not 100% guarantee unconfirmed rows never appear here)
   const { data: profilesData } = await adminSb
     .from("profiles")
     .select("id, full_name, phone, role, must_change_password, created_at")
@@ -30,5 +31,13 @@ export default async function AdminUsersPage() {
     };
   });
 
-  return <UsersClient profiles={enriched} />;
+  // Show only confirmed users in the admin list. Migration 003 was meant to
+  // stop unconfirmed signups from ever getting a profiles row, but in
+  // practice some still slip through — so we filter explicitly here rather
+  // than trust that invariant blindly. Admins are always shown regardless
+  // of confirmation status, since their access shouldn't be hidden/toggled
+  // based on a stale email-confirmation state.
+  const visibleUsers = enriched.filter(p => p.email_confirmed || p.role === "admin");
+
+  return <UsersClient profiles={visibleUsers} />;
 }
