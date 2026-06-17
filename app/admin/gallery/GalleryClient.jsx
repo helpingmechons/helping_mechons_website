@@ -134,7 +134,7 @@ export default function GalleryClient({ initialItems }) {
                 </div>
                 <div>
                   <label className="form-label">Sort Order</label>
-                  <input name="sort_order" type="number" className="form-input" value={form.sort_order} onChange={handleChange} />
+                  <input name="sort_order" type="number" onWheel={e => e.target.blur()} className="form-input" value={form.sort_order} onChange={handleChange} />
                 </div>
               </div>
               <div>

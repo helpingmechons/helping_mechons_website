@@ -230,6 +230,7 @@ export default function DonationsClient({ donations: initial }) {
                       className="form-input pl-8"
                       value={approvedAmt}
                       onChange={e => setApprovedAmt(e.target.value)}
+                      onWheel={e => e.target.blur()}
                       placeholder="Enter actual received amount"
                     />
                   </div>

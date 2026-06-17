@@ -137,7 +137,7 @@ export default function LedgerClient({ entries: initial, totalCredits, totalDebi
               </div>
               <div>
                 <label className="form-label">Amount (₹) *</label>
-                <input name="amount" type="number" className="form-input" value={form.amount} onChange={handleChange} />
+                <input name="amount" type="number" onWheel={e => e.target.blur()} className="form-input" value={form.amount} onChange={handleChange} />
               </div>
               <div>
                 <label className="form-label">Note *</label>

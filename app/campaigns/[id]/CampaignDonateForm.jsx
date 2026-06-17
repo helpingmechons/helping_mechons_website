@@ -85,6 +85,7 @@ export default function CampaignDonateForm({ campaign }) {
             value={custom ? amount : ""}
             onChange={e => { setAmount(e.target.value); setCustom(true); }}
             onFocus={() => setCustom(true)}
+            onWheel={e => e.target.blur()}
           />
         </div>
 

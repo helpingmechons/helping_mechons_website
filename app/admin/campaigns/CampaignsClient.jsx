@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 const EMPTY = {
-  title: "", slug: "", description: "", goal_amount: "", cover_image_url: "",
+  title: "", slug: "", description: "", goal_amount: "", current_amount: "0", cover_image_url: "",
   category: "general", active: true, featured: false, location: "",
   start_date: "", end_date: "",
   is_fundraiser: false, urgency_label: "Limited Time",
@@ -39,6 +39,7 @@ export default function CampaignsClient({ initialCampaigns }) {
     setForm({
       ...EMPTY, ...c,
       goal_amount:       String(c.goal_amount || ""),
+      current_amount:    String(c.current_amount || "0"),
       start_date:        c.start_date?.split("T")[0] || "",
       end_date:          c.end_date?.split("T")[0] || "",
       show_public_stats: Boolean(c.show_public_stats),
@@ -82,6 +83,10 @@ export default function CampaignsClient({ initialCampaigns }) {
   const handleSave = async () => {
     if (!form.title || !form.goal_amount) { toast.error("Title and goal amount are required."); return; }
     if (form.is_fundraiser && !form.end_date) { toast.error("Fundraisers require an end date."); return; }
+    if (form.current_amount !== "" && Number(form.current_amount) < 0) {
+      toast.error("Received amount cannot be negative.");
+      return;
+    }
     start(async () => {
       const payload = {
         title:             form.title,
@@ -106,11 +111,17 @@ export default function CampaignsClient({ initialCampaigns }) {
       };
 
       if (modal === "create") {
+        // New campaigns always start at 0 raised — there's nothing to
+        // manually set yet, current_amount only matters once a campaign
+        // already exists and needs a correction (e.g. cash donations).
         const { data, error } = await supabase.from("campaigns").insert(payload).select().single();
         if (error) { toast.error(error.message); return; }
         setCampaigns(prev => [data, ...prev]);
         toast.success("Campaign created!");
       } else {
+        // Edits can manually correct current_amount — e.g. to add cash
+        // donations that didn't go through the online donate flow.
+        payload.current_amount = Number(form.current_amount || 0);
         const { data, error } = await supabase.from("campaigns").update(payload).eq("id", modal.id).select().single();
         if (error) { toast.error(error.message); return; }
         setCampaigns(prev => prev.map(c => c.id === modal.id ? data : c));
@@ -324,8 +335,20 @@ export default function CampaignsClient({ initialCampaigns }) {
               </div>
               <div>
                 <label className="form-label">Goal Amount (₹) *</label>
-                <input name="goal_amount" type="number" className="form-input" value={form.goal_amount} onChange={handleChange} />
+                <input name="goal_amount" type="number" onWheel={e => e.target.blur()} className="form-input" value={form.goal_amount} onChange={handleChange} />
               </div>
+              {modal !== "create" && (
+                <div>
+                  <label className="form-label flex items-center gap-1.5">
+                    Received Amount (₹)
+                    <span className="font-caption text-caption text-on-surface-variant font-normal">— manual override</span>
+                  </label>
+                  <input name="current_amount" type="number" min="0" onWheel={e => e.target.blur()} className="form-input" value={form.current_amount} onChange={handleChange} />
+                  <p className="font-caption text-caption text-on-surface-variant mt-1">
+                    Normally updates automatically when donations are approved. Edit this directly to add cash or offline donations — the progress bar and percentage recalculate immediately.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="form-label">Location</label>
                 <input name="location" className="form-input" value={form.location} onChange={handleChange} placeholder="e.g. Visakhapatnam" />

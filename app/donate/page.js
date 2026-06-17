@@ -368,7 +368,8 @@ function DonateForm() {
                         className="form-input pl-8"
                         value={custom ? amount : ""}
                         onChange={e => { setAmount(e.target.value); setCustom(true); }}
-                        onFocus={() => setCustom(true)} />
+                        onFocus={() => setCustom(true)}
+                        onWheel={e => e.target.blur()} />
                     </div>
                   </div>
 
