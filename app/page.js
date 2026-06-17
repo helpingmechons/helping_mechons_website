@@ -70,10 +70,10 @@ export default async function HomePage() {
           <div className="section-container">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               {[
-                { stat: "1.2M+",  label: "Lives Touched"      },
-                { stat: "5.4M",   label: "Meals Served"       },
-                { stat: "450+",   label: "Medical Camps"      },
-                { stat: "85k",    label: "Students Supported" },
+				{ stat: "500+", label: "Meals Delivered"   },
+                { stat: "30+",   label: "Medical Consults"  },
+                { stat: "50+",  label: "Education Kits"    },
+                { stat: "100%",   label: "Fund Transparency" }
               ].map(({ stat, label }) => (
                 <div key={label} className="space-y-2">
                   <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-primary">{stat}</p>
