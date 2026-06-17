@@ -10,24 +10,34 @@ import CampaignDonateForm from "./CampaignDonateForm";
 
 export async function generateMetadata({ params }) {
   const supabase = createClient();
-  const { data } = await supabase
-    .from("campaigns")
-    .select("title, description")
-    .or(`slug.eq.${params.id},id.eq.${params.id}`)
-    .single();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
+  // Only OR in the id.eq. clause when params.id is actually a UUID — a slug
+  // like "emergency-medical-fund" is not valid input for a uuid column, and
+  // .or() fails the WHOLE query (not just that clause) on a type mismatch,
+  // which made every slug-based campaign lookup silently return no rows.
+  let query = supabase.from("campaigns").select("title, description");
+  query = isUuid
+    ? query.or(`slug.eq.${params.id},id.eq.${params.id}`)
+    : query.eq("slug", params.id);
+  const { data } = await query.maybeSingle();
   return { title: data ? `${data.title} — Helping Mechons` : "Campaign | Helping Mechons" };
 }
 
 export default async function CampaignDetailPage({ params }) {
   const supabase = createClient();
   const { id }   = params;
+  const isUuid   = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  let { data: campaign } = await supabase
-    .from("campaigns")
-    .select("*")
-    .or(`slug.eq.${id},id.eq.${id}`)
-    .eq("active", true)
-    .single();
+  // Same fix as generateMetadata above: don't OR in id.eq.<id> unless id is
+  // actually a UUID, or the whole query errors out and silently returns
+  // null — which made this page fall through to the static FALLBACKS object
+  // for every real, slug-based campaign (i.e. almost all campaigns, since
+  // every campaign link in the app uses slug || id).
+  let campaignQuery = supabase.from("campaigns").select("*").eq("active", true);
+  campaignQuery = isUuid
+    ? campaignQuery.or(`slug.eq.${id},id.eq.${id}`)
+    : campaignQuery.eq("slug", id);
+  let { data: campaign } = await campaignQuery.maybeSingle();
 
   // Static fallback data — all existing campaigns are completed
   if (!campaign) {
