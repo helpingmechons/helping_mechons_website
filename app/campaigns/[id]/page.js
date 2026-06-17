@@ -58,13 +58,16 @@ export default async function CampaignDetailPage({ params }) {
   }
 
   // Derive status
-  const pct         = Math.min(100, Math.round(((campaign.current_amount || 0) / (campaign.goal_amount || 1)) * 100));
+  // rawPct can exceed 100 — we use it for the "overflow" bar visual
+  const rawPct      = Math.round(((campaign.current_amount || 0) / (campaign.goal_amount || 1)) * 100);
+  const pct         = Math.min(100, rawPct);   // capped for bar fill width
+  const overGoal    = rawPct > 100;            // true when donations exceeded the goal
   const daysLeft    = campaign.end_date
     ? Math.max(0, Math.ceil((new Date(campaign.end_date) - new Date()) / 86400000))
     : null;
-  const isCompleted = campaign.is_completed || pct >= 100;
-  // Only show amounts/progress if admin explicitly enabled it AND campaign isn't completed
-  const showStats   = campaign.show_public_stats && !isCompleted;
+  const isCompleted = campaign.is_completed || rawPct >= 100;
+  // Show stats when: admin enabled it (active) OR campaign is completed (always show final tally)
+  const showStats   = campaign.show_public_stats || isCompleted;
 
   // Donor comments
   const { data: comments = [] } = await supabase
@@ -141,70 +144,104 @@ export default async function CampaignDetailPage({ params }) {
             {/* Left: Details */}
             <div className="lg:col-span-3 space-y-8">
 
-              {/* ── Status card: Completed / Active with stats / Active without stats ── */}
-              {isCompleted ? (
-                <div className="card p-6 border-l-4 border-secondary bg-surface-container-lowest">
-                  <div className="flex items-center gap-3 mb-3">
+              {/* ── Status card ── */}
+              <div className={`card p-6 ${isCompleted ? "border-l-4 border-secondary" : ""}`}>
+
+                {/* Completed header */}
+                {isCompleted && (
+                  <div className="flex items-center gap-3 mb-5">
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                       <BadgeCheck className="w-5 h-5 text-on-secondary" />
                     </div>
                     <div>
-                      <p className="font-headline font-semibold text-on-surface text-headline-md">Mission Completed</p>
-                      <p className="text-caption text-on-surface-variant">This campaign has been successfully concluded.</p>
-                    </div>
-                  </div>
-                  <p className="text-body-md text-on-surface-variant">
-                    Thank you to everyone who contributed to this cause. You can still donate to support our ongoing work.
-                  </p>
-                </div>
-              ) : showStats ? (
-                /* Active campaign with public stats enabled */
-                <div className="card p-6">
-                  <div className="flex justify-between text-body-md mb-3">
-                    <span className="text-on-surface-variant">Raised</span>
-                    <span className="text-secondary font-bold">{pct}%</span>
-                  </div>
-                  <div className="h-3 bg-surface-container-high rounded-full overflow-hidden mb-3">
-                    <div className="h-full bg-secondary rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 mt-4 text-center">
-                    <div>
-                      <p className="font-headline font-bold text-headline-md text-secondary">
-                        ₹{Number(campaign.current_amount || 0).toLocaleString("en-IN")}
+                      <p className="font-headline font-semibold text-on-surface text-headline-md">
+                        {overGoal ? "Goal Exceeded! 🎉" : "Mission Completed 🎉"}
                       </p>
-                      <p className="text-caption text-on-surface-variant mt-1">Raised so far</p>
-                    </div>
-                    <div>
-                      <p className="font-headline font-bold text-headline-md text-primary">
-                        ₹{Number(campaign.goal_amount || 0).toLocaleString("en-IN")}
+                      <p className="text-caption text-on-surface-variant">
+                        {overGoal
+                          ? `Raised ${rawPct}% of goal — extra funds support our other causes.`
+                          : "This campaign has been successfully concluded."}
                       </p>
-                      <p className="text-caption text-on-surface-variant mt-1">Total Goal</p>
-                    </div>
-                    <div>
-                      <p className="font-headline font-bold text-headline-md text-primary">
-                        {daysLeft !== null ? `${daysLeft}d` : "∞"}
-                      </p>
-                      <p className="text-caption text-on-surface-variant mt-1">Days Left</p>
                     </div>
                   </div>
-                </div>
-              ) : (
-                /* Active campaign, stats hidden */
-                <div className="card p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-body-md text-on-surface-variant font-medium">Campaign Progress</span>
-                    {daysLeft !== null && (
-                      <span className="text-label-md text-secondary font-semibold">
-                        {daysLeft > 0 ? `${daysLeft} days left` : "Closing soon"}
+                )}
+
+                {/* Progress bar — shown when stats are visible */}
+                {showStats ? (
+                  <>
+                    <div className="flex justify-between text-body-md mb-2">
+                      <span className="text-on-surface-variant">
+                        ₹{Number(campaign.current_amount || 0).toLocaleString("en-IN")} raised
                       </span>
+                      <span className={`font-bold ${isCompleted ? "text-secondary" : "text-primary"}`}>
+                        {rawPct}%{isCompleted ? " ✓" : ""}
+                      </span>
+                    </div>
+
+                    {/* Bar — overflows visually when rawPct > 100 */}
+                    <div className="relative h-3 bg-surface-container-high rounded-full overflow-hidden mb-4">
+                      {/* Base fill (up to 100%) */}
+                      <div
+                        className="absolute inset-y-0 left-0 bg-secondary rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%` }}
+                      />
+                      {/* Overflow fill (beyond goal) — brighter pulse strip */}
+                      {overGoal && (
+                        <div className="absolute inset-y-0 left-0 right-0 bg-secondary/40 animate-pulse rounded-full" />
+                      )}
+                    </div>
+
+                    {/* Goal marker label when over */}
+                    {overGoal && (
+                      <p className="text-caption text-secondary font-semibold mb-3 text-center">
+                        ₹{Number(campaign.goal_amount || 0).toLocaleString("en-IN")} goal reached
+                        · ₹{Number((campaign.current_amount || 0) - (campaign.goal_amount || 0)).toLocaleString("en-IN")} extra raised
+                      </p>
                     )}
-                  </div>
-                  <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
-                    <div className="h-full bg-secondary rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
-                  </div>
-                  <p className="text-caption text-on-surface-variant mt-2">Active — your donation goes directly to this mission.</p>
-                </div>
-              )}
+
+                    <div className={`grid gap-4 mt-2 text-center ${isCompleted ? "grid-cols-2" : "grid-cols-3"}`}>
+                      <div>
+                        <p className="font-headline font-bold text-headline-md text-secondary">
+                          ₹{Number(campaign.current_amount || 0).toLocaleString("en-IN")}
+                        </p>
+                        <p className="text-caption text-on-surface-variant mt-1">Total Raised</p>
+                      </div>
+                      <div>
+                        <p className="font-headline font-bold text-headline-md text-primary">
+                          ₹{Number(campaign.goal_amount || 0).toLocaleString("en-IN")}
+                        </p>
+                        <p className="text-caption text-on-surface-variant mt-1">Goal</p>
+                      </div>
+                      {!isCompleted && (
+                        <div>
+                          <p className="font-headline font-bold text-headline-md text-primary">
+                            {daysLeft !== null ? `${daysLeft}d` : "∞"}
+                          </p>
+                          <p className="text-caption text-on-surface-variant mt-1">Days Left</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  /* Active campaign, stats hidden by admin */
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-body-md text-on-surface-variant font-medium">Campaign Progress</span>
+                      {!isCompleted && daysLeft !== null && (
+                        <span className="text-label-md text-secondary font-semibold">
+                          {daysLeft > 0 ? `${daysLeft} days left` : "Closing soon"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
+                      <div className="h-full bg-secondary rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-caption text-on-surface-variant mt-2">
+                      {isCompleted ? "Thank you to everyone who contributed to this cause." : "Active — your donation goes directly to this mission."}
+                    </p>
+                  </>
+                )}
+              </div>
 
               {/* About */}
               <div>

@@ -1,58 +1,98 @@
 "use client";
 import { getPhoto } from "@/lib/images/drivePhotos";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import {
   Shield, Globe, CheckCircle, CreditCard, Smartphone,
-  AlertCircle, QrCode, X,
+  AlertCircle, QrCode, X, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000, 2500, 5000];
 const PLATFORM_FEE   = 0.02;
 const RAZORPAY_KEY   = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 const RAZORPAY_READY = Boolean(RAZORPAY_KEY);
+const ORG_UPI_ID     = process.env.NEXT_PUBLIC_ORG_UPI_ID || "tdurgaprasad503@ybl";
 
-// UPI ID — set NEXT_PUBLIC_ORG_UPI_ID=tdurgaprasad503@ybl in env
-const ORG_UPI_ID = process.env.NEXT_PUBLIC_ORG_UPI_ID || "tdurgaprasad503@ybl";
+// ── Inner component (uses useSearchParams — must be inside <Suspense>) ──────
+function DonateForm() {
+  const searchParams = useSearchParams();
 
-export default function DonatePage() {
   const [amount,      setAmount]   = useState("500");
   const [custom,      setCustom]   = useState(false);
-  // Gateway fee is absorbed by Helping Mechons by default — donor can opt in (automated tab only)
   const [coverFee,    setCover]    = useState(false);
   const [anon,        setAnon]     = useState(false);
   const [loading,     setLoading]  = useState(false);
   const [done,        setDone]     = useState(false);
   const [completedVia,setCompletedVia] = useState("manual");
-  // Two separate tabs — Manual is the default landing tab
   const [activeTab,   setActiveTab] = useState("manual");
   const [showQR,      setShowQR]    = useState(false);
+
+  // Dynamic campaigns fetched from DB
+  const [campaigns,   setCampaigns] = useState([]);
+  // Locked campaign (from ?campaign= URL param) — null means unrestricted
+  const [lockedCampaign, setLockedCampaign] = useState(null);
+
   const [recentDonors, setRecentDonors] = useState([
     { name: "Anonymous", amt: "₹2,500", t: "Just now" },
     { name: "Priya M.",  amt: "₹500",   t: "5 hours ago" },
     { name: "Rajesh K.", amt: "₹1,000", t: "Yesterday" },
   ]);
+
   const [form, setForm] = useState({
-    donor_name: "", email: "", phone: "", campaign_name: "", comment: "",
+    donor_name: "", email: "", phone: "", campaign_id: "", campaign_name: "", comment: "",
   });
 
-  // Scroll to top on page mount (fixes footer "Donate Now" not scrolling)
-  // Also fetch real recent donors from DB
+  // On mount: fetch campaigns + recent donors + handle URL param
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
+
+    // Fetch real recent donors
     fetch("/api/donate/recent")
       .then(r => r.json())
       .then(data => { if (data.donors?.length) setRecentDonors(data.donors); })
-      .catch(() => {}); // fail silently — keeps placeholder data
-  }, []);
+      .catch(() => {});
+
+    // Fetch active campaigns from Supabase (anon read — public RLS policy)
+    const supabase = createClient();
+    supabase
+      .from("campaigns")
+      .select("id, title, slug")
+      .eq("active", true)
+      .order("created_at", { ascending: true })
+      .then(({ data: camps }) => {
+        if (camps?.length) {
+          setCampaigns(camps);
+
+          // Check URL param ?campaign=slug-or-id
+          const param = searchParams.get("campaign");
+          if (param) {
+            const match = camps.find(
+              c => c.slug === param || c.id === param || c.title.toLowerCase() === param.toLowerCase()
+            );
+            if (match) {
+              setLockedCampaign(match);
+              setForm(f => ({ ...f, campaign_id: match.id, campaign_name: match.title }));
+            }
+          }
+        }
+      });
+
+    // Pre-fill amount from ?amount= URL param (set by campaign donate button)
+    const amtParam = searchParams.get("amount");
+    if (amtParam && Number(amtParam) >= 10) {
+      setAmount(String(Math.round(Number(amtParam))));
+      setCustom(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const numAmt = Number(amount) || 0;
   const fee    = Math.round(numAmt * PLATFORM_FEE);
-  // The fee only ever applies on the Automated (online gateway) tab, and only if the donor opts in
   const total  = activeTab === "automated" && coverFee ? numAmt + fee : numAmt;
 
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -63,7 +103,6 @@ export default function DonatePage() {
     return true;
   };
 
-  // Submit to backend
   const submitDonation = async (extraFields = {}) => {
     const res = await fetch("/api/donate", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -91,10 +130,8 @@ export default function DonatePage() {
       });
       const order = await orderRes.json();
       if (!orderRes.ok) {
-        // Razorpay not configured yet — point them to the Manual tab
         const isNotConfigured =
-          order.error?.toLowerCase().includes("not configured") ||
-          orderRes.status === 503;
+          order.error?.toLowerCase().includes("not configured") || orderRes.status === 503;
         if (isNotConfigured) {
           toast.error(
             "Online payment is being set up. Please use the Manual (UPI) tab below or contact helpingmechons@gmail.com.",
@@ -108,9 +145,8 @@ export default function DonatePage() {
         return;
       }
 
-      // Check Razorpay SDK loaded
       if (typeof window.Razorpay === "undefined") {
-        toast.error("Payment gateway failed to load. Please refresh the page or use the Manual tab.");
+        toast.error("Payment gateway failed to load. Please refresh or use the Manual tab.");
         setActiveTab("manual");
         setLoading(false);
         return;
@@ -123,11 +159,7 @@ export default function DonatePage() {
         name:         "Helping Mechons",
         description:  form.campaign_name || "General Donation",
         order_id:     order.id,
-        prefill: {
-          name:    form.donor_name,
-          email:   form.email,
-          contact: form.phone,
-        },
+        prefill: { name: form.donor_name, email: form.email, contact: form.phone },
         theme:        { color: "#9a442d" },
         handler: async (response) => {
           try {
@@ -138,7 +170,7 @@ export default function DonatePage() {
             });
             setCompletedVia("automated");
             setDone(true);
-            toast.success("Donation successful! Receipt will be emailed shortly.");
+            toast.success("Donation successful! Your receipt has been emailed.");
           } catch (err) { toast.error(err.message); }
         },
         modal: { ondismiss: () => setLoading(false) },
@@ -190,8 +222,9 @@ export default function DonatePage() {
               {completedVia === "automated" ? "processed successfully" : "submitted for verification"}.
               {completedVia === "manual"
                 ? " Once our admin team approves it, a receipt will be emailed to "
-                : " A receipt will be emailed to "}
-              <strong>{form.email}</strong>{completedVia === "manual" ? " and added to your donation history." : "."}
+                : " Your receipt has been emailed to "}
+              <strong>{form.email}</strong>
+              {completedVia === "manual" ? " and added to your donation history." : "."}
             </p>
             <Link href="/" className="btn-primary inline-flex mt-4">Back to Home</Link>
           </div>
@@ -203,7 +236,6 @@ export default function DonatePage() {
 
   return (
     <>
-      {/* Razorpay SDK */}
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
       <Navbar />
       <main>
@@ -212,13 +244,29 @@ export default function DonatePage() {
         <section className="py-section-padding bg-background">
           <div className="section-container grid grid-cols-1 lg:grid-cols-2 gap-gutter items-center">
             <div className="space-y-4">
-              <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-md text-label-md">DIGNIFIED URGENCY</span>
-              <h1 className="font-headline-xl-mobile text-headline-xl-mobile md:font-headline-xl md:text-headline-xl text-primary leading-tight">
-                Your Contribution is the Final, Vital Piece.
-              </h1>
-              <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
-                Every donation provides medical aid, food security, and education to those in need across India.
-              </p>
+              {lockedCampaign ? (
+                <>
+                  <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-md text-label-md">
+                    CAMPAIGN DONATION
+                  </span>
+                  <h1 className="font-headline-xl-mobile text-headline-xl-mobile md:font-headline-xl md:text-headline-xl text-primary leading-tight">
+                    {lockedCampaign.title}
+                  </h1>
+                  <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                    Your donation will go directly towards this campaign.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-md text-label-md">DIGNIFIED URGENCY</span>
+                  <h1 className="font-headline-xl-mobile text-headline-xl-mobile md:font-headline-xl md:text-headline-xl text-primary leading-tight">
+                    Your Contribution is the Final, Vital Piece.
+                  </h1>
+                  <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                    Every donation provides medical aid, food security, and education to those in need across India.
+                  </p>
+                </>
+              )}
               <div className="flex items-center gap-4 py-4">
                 <div className="flex -space-x-3">
                   {["RM","AS","PK"].map(i => (
@@ -232,7 +280,7 @@ export default function DonatePage() {
               <Image src={getPhoto("orphanage-care")} alt="Humanitarian aid delivery" fill className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent" />
               <div className="absolute bottom-8 left-8 text-on-primary">
-                <p className="font-headline-md text-headline-md italic">"Restoring hope, one life at a time."</p>
+                <p className="font-headline-md text-headline-md italic">&quot;Restoring hope, one life at a time.&quot;</p>
               </div>
             </div>
           </div>
@@ -265,16 +313,40 @@ export default function DonatePage() {
                       <input name="phone" type="tel" value={form.phone} onChange={handleChange}
                         className="form-input" placeholder="+91 XXXXX XXXXX" />
                     </div>
+
+                    {/* Campaign dropdown — locked if arrived from campaign page */}
                     <div>
-                      <label className="form-label">Campaign (optional)</label>
-                      <select name="campaign_name" className="form-input" value={form.campaign_name} onChange={handleChange}>
-                        <option value="">General Fund (where needed most)</option>
-                        <option value="Emergency Medical Fund">Emergency Medical Fund</option>
-                        <option value="Daily Food for 500 Families">Daily Food for 500 Families</option>
-                        <option value="Education Kits — 200 Children">Education Kits — 200 Children</option>
-                        <option value="Monthly Grocery Kits — Elderly">Monthly Grocery Kits — Elderly</option>
-                        <option value="Orphanage Support — Vijayawada">Orphanage Support — Vijayawada</option>
-                      </select>
+                      <label className="form-label flex items-center gap-1.5">
+                        Campaign
+                        {lockedCampaign && (
+                          <span className="inline-flex items-center gap-1 text-caption text-secondary font-normal">
+                            <Lock className="w-3 h-3" /> locked
+                          </span>
+                        )}
+                      </label>
+                      {lockedCampaign ? (
+                        // Locked — show read-only pill; campaign_id already set in form state
+                        <div className="form-input bg-surface-container-low flex items-center gap-2 cursor-not-allowed opacity-80">
+                          <Lock className="w-4 h-4 text-on-surface-variant flex-shrink-0" />
+                          <span className="text-on-surface font-medium">{lockedCampaign.title}</span>
+                        </div>
+                      ) : (
+                        <select
+                          name="campaign_id"
+                          className="form-input"
+                          value={form.campaign_id}
+                          onChange={e => {
+                            const id = e.target.value;
+                            const match = campaigns.find(c => c.id === id);
+                            setForm(f => ({ ...f, campaign_id: id, campaign_name: match?.title || "" }));
+                          }}
+                        >
+                          <option value="">General Fund (where needed most)</option>
+                          {campaigns.map(c => (
+                            <option key={c.id} value={c.id}>{c.title}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
 
@@ -346,7 +418,7 @@ export default function DonatePage() {
                         <div className="flex items-start gap-3 p-4 bg-surface-container-low rounded-lg border border-outline-variant/30">
                           <QrCode className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
                           <p className="font-body-md text-body-md text-on-surface">
-                            Tap <strong>Pay Now</strong> to get a UPI QR code, scan it with any UPI app, and pay. No screenshots or reference numbers needed — just tap <strong>Done</strong> once you've paid. Our team verifies manual donations within 24–48 hours.
+                            Tap <strong>Pay Now</strong> to get a UPI QR code, scan it with any UPI app, and pay. No screenshots or reference numbers needed — just tap <strong>Done</strong> once you&apos;ve paid. Our team verifies manual donations within 24–48 hours.
                           </p>
                         </div>
                         <div className="p-4 bg-primary-fixed rounded-lg font-body-md text-body-md text-on-primary-fixed">
@@ -383,9 +455,9 @@ export default function DonatePage() {
                           <input type="checkbox" checked={coverFee} onChange={e => setCover(e.target.checked)}
                             className="mt-1 text-secondary focus:ring-secondary rounded" />
                           <div className="font-body-md text-body-md text-on-surface">
-                            I'd like to additionally cover the ₹{fee} gateway fee
+                            I&apos;d like to additionally cover the ₹{fee} gateway fee
                             <span className="font-caption text-caption text-on-surface-variant block">
-                              This box is unchecked by default — Helping Mechons absorbs the 2% payment-gateway fee ourselves, not the donor. Check this only if you'd like to voluntarily cover it as well.
+                              This box is unchecked by default — Helping Mechons absorbs the 2% gateway fee. Check this only if you&apos;d like to voluntarily cover it as well.
                             </span>
                           </div>
                         </label>
@@ -434,7 +506,7 @@ export default function DonatePage() {
                   <h3 className="font-headline-md text-headline-md mb-2">How It Works</h3>
                   <ul className="space-y-3 font-body-md text-body-md text-on-primary-container">
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">1.</span> Fill in your details and pick an amount.</li>
-                    <li className="flex gap-3"><span className="font-bold text-secondary-container">2.</span> Choose Manual (scan & pay via UPI) or Automated (card / netbanking).</li>
+                    <li className="flex gap-3"><span className="font-bold text-secondary-container">2.</span> Choose Manual (scan &amp; pay via UPI) or Automated (card / netbanking).</li>
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">3.</span> Manual donations are verified by our admin team; automated ones confirm instantly.</li>
                   </ul>
                   <div className="mt-4 p-4 bg-secondary rounded-xl">
@@ -449,6 +521,12 @@ export default function DonatePage() {
                 {numAmt > 0 && (
                   <div className="card p-6">
                     <h3 className="font-headline-md text-headline-md text-primary mb-4">Summary</h3>
+                    {lockedCampaign && (
+                      <div className="flex justify-between text-body-md mb-2">
+                        <span className="text-on-surface-variant">Campaign</span>
+                        <span className="font-medium text-secondary text-right max-w-[60%]">{lockedCampaign.title}</span>
+                      </div>
+                    )}
                     <div className="space-y-2 font-body-md text-body-md">
                       <div className="flex justify-between">
                         <span className="text-on-surface-variant">Donation</span>
@@ -491,7 +569,7 @@ export default function DonatePage() {
       </main>
       <Footer />
 
-      {/* ── QR Payment Popup (Manual tab) ── */}
+      {/* ── QR Payment Popup ── */}
       {showQR && (
         <div
           className="fixed inset-0 bg-primary/60 z-50 flex items-center justify-center p-4"
@@ -512,6 +590,11 @@ export default function DonatePage() {
             <h3 className="font-headline-md text-headline-md text-primary">
               Scan &amp; Pay ₹{numAmt.toLocaleString("en-IN")}
             </h3>
+            {lockedCampaign && (
+              <p className="font-label-md text-label-md text-secondary -mt-3">
+                for: {lockedCampaign.title}
+              </p>
+            )}
 
             <div className="w-56 h-56 mx-auto bg-white rounded-xl flex items-center justify-center border border-outline-variant/30 p-3">
               <img
@@ -535,7 +618,7 @@ export default function DonatePage() {
             </div>
 
             <p className="font-body-md text-body-md text-on-surface bg-surface-container-low rounded-lg p-4">
-              Open any UPI app, scan the code above, and pay <strong>₹{numAmt.toLocaleString("en-IN")}</strong>. Once you've completed the payment, tap the button below — no screenshot or reference number needed.
+              Open any UPI app, scan the code above, and pay <strong>₹{numAmt.toLocaleString("en-IN")}</strong>. Once you&apos;ve completed the payment, tap the button below — no screenshot or reference number needed.
             </p>
 
             <button
@@ -555,5 +638,18 @@ export default function DonatePage() {
         </div>
       )}
     </>
+  );
+}
+
+// ── Page export wraps DonateForm in Suspense (required by Next.js for useSearchParams) ──
+export default function DonatePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-on-surface-variant font-body-md">Loading…</div>
+      </div>
+    }>
+      <DonateForm />
+    </Suspense>
   );
 }

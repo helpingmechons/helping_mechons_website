@@ -68,7 +68,7 @@ export default async function FundraiserBanner() {
                       <div className="h-full bg-secondary-container rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
                     </div>
                     <Link
-                      href={`/donate?campaign=${encodeURIComponent(f.title)}`}
+                      href={`/donate?campaign=${f.slug || f.id}`}
                       className="flex items-center justify-between w-full py-2 px-4 bg-secondary text-on-secondary rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity"
                     >
                       Donate Now <ArrowRight className="w-4 h-4" />
