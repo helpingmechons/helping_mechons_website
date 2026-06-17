@@ -5,7 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Heart, Shield, Globe, CheckCircle, Upload, CreditCard, Smartphone, AlertCircle } from "lucide-react";
+import {
+  Shield, Globe, CheckCircle, CreditCard, Smartphone,
+  AlertCircle, QrCode, X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000, 2500, 5000];
@@ -17,26 +20,24 @@ const RAZORPAY_READY = Boolean(RAZORPAY_KEY);
 const ORG_UPI_ID = process.env.NEXT_PUBLIC_ORG_UPI_ID || "tdurgaprasad503@ybl";
 
 export default function DonatePage() {
-  const [amount,      setAmount]  = useState("500");
-  const [custom,      setCustom]  = useState(false);
-  // Platform fee is covered by donor by default
-  const [coverFee,    setCover]   = useState(true);
-  const [anon,        setAnon]    = useState(false);
-  const [loading,     setLoading] = useState(false);
-  const [done,        setDone]    = useState(false);
-  // Razorpay is always the default mode
-  const [payMode,     setPayMode] = useState("razorpay");
-  const [showUPI,     setShowUPI] = useState(false);
-  const [proofFile,   setProof]   = useState(null);
-  const [uploading,   setUpload]  = useState(false);
+  const [amount,      setAmount]   = useState("500");
+  const [custom,      setCustom]   = useState(false);
+  // Gateway fee is absorbed by Helping Mechons by default — donor can opt in (automated tab only)
+  const [coverFee,    setCover]    = useState(false);
+  const [anon,        setAnon]     = useState(false);
+  const [loading,     setLoading]  = useState(false);
+  const [done,        setDone]     = useState(false);
+  const [completedVia,setCompletedVia] = useState("manual");
+  // Two separate tabs — Manual is the default landing tab
+  const [activeTab,   setActiveTab] = useState("manual");
+  const [showQR,      setShowQR]    = useState(false);
   const [recentDonors, setRecentDonors] = useState([
     { name: "Anonymous", amt: "₹2,500", t: "Just now" },
     { name: "Priya M.",  amt: "₹500",   t: "5 hours ago" },
     { name: "Rajesh K.", amt: "₹1,000", t: "Yesterday" },
   ]);
   const [form, setForm] = useState({
-    donor_name: "", email: "", phone: "", campaign_name: "",
-    comment: "", transaction_ref: "", proof_link: "",
+    donor_name: "", email: "", phone: "", campaign_name: "", comment: "",
   });
 
   // Scroll to top on page mount (fixes footer "Donate Now" not scrolling)
@@ -51,28 +52,15 @@ export default function DonatePage() {
 
   const numAmt = Number(amount) || 0;
   const fee    = Math.round(numAmt * PLATFORM_FEE);
-  const total  = coverFee ? numAmt + fee : numAmt;
+  // The fee only ever applies on the Automated (online gateway) tab, and only if the donor opts in
+  const total  = activeTab === "automated" && coverFee ? numAmt + fee : numAmt;
 
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  // Upload payment proof screenshot to Drive
-  const handleProofUpload = async (file) => {
-    if (!file) return null;
-    setUpload(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("purpose", "proof");
-      const res  = await fetch("/api/drive", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-      setForm(f => ({ ...f, proof_link: data.viewUrl }));
-      toast.success("Screenshot uploaded ✓");
-      return data.viewUrl;
-    } catch (err) {
-      toast.error("Screenshot upload failed: " + err.message);
-      return null;
-    } finally { setUpload(false); }
+  const validateBasics = () => {
+    if (!form.donor_name || !form.email) { toast.error("Please enter your name and email first."); return false; }
+    if (numAmt < 10) { toast.error("Minimum donation is ₹10."); return false; }
+    return true;
   };
 
   // Submit to backend
@@ -82,7 +70,8 @@ export default function DonatePage() {
       body: JSON.stringify({
         ...form,
         amount: numAmt, final_amount: total,
-        fee_covered_by_donor: coverFee, is_anonymous: anon,
+        fee_covered_by_donor: activeTab === "automated" && coverFee,
+        is_anonymous: anon,
         ...extraFields,
       }),
     });
@@ -91,10 +80,9 @@ export default function DonatePage() {
     return data;
   };
 
-  // ── Razorpay flow ──
+  // ── Automated (Razorpay) flow ──
   const handleRazorpay = async () => {
-    if (!form.donor_name || !form.email) { toast.error("Please enter your name and email first."); return; }
-    if (numAmt < 10) { toast.error("Minimum donation is ₹10."); return; }
+    if (!validateBasics()) return;
     setLoading(true);
     try {
       const orderRes = await fetch("/api/donate/razorpay-order", {
@@ -103,16 +91,16 @@ export default function DonatePage() {
       });
       const order = await orderRes.json();
       if (!orderRes.ok) {
-        // Razorpay not configured yet — show helpful message
+        // Razorpay not configured yet — point them to the Manual tab
         const isNotConfigured =
           order.error?.toLowerCase().includes("not configured") ||
           orderRes.status === 503;
         if (isNotConfigured) {
           toast.error(
-            "Online payment is being set up. Please use the UPI option below or contact helpingmechons@gmail.com.",
+            "Online payment is being set up. Please use the Manual (UPI) tab below or contact helpingmechons@gmail.com.",
             { duration: 6000 }
           );
-          setShowUPI(true);
+          setActiveTab("manual");
         } else {
           throw new Error(order.error || "Could not create order");
         }
@@ -122,8 +110,8 @@ export default function DonatePage() {
 
       // Check Razorpay SDK loaded
       if (typeof window.Razorpay === "undefined") {
-        toast.error("Payment gateway failed to load. Please refresh the page or use UPI below.");
-        setShowUPI(true);
+        toast.error("Payment gateway failed to load. Please refresh the page or use the Manual tab.");
+        setActiveTab("manual");
         setLoading(false);
         return;
       }
@@ -148,6 +136,7 @@ export default function DonatePage() {
               transaction_ref: response.razorpay_payment_id,
               proof_link:      `razorpay:${response.razorpay_order_id}`,
             });
+            setCompletedVia("automated");
             setDone(true);
             toast.success("Donation successful! Receipt will be emailed shortly.");
           } catch (err) { toast.error(err.message); }
@@ -162,27 +151,24 @@ export default function DonatePage() {
       });
       rz.open();
     } catch (err) {
-      toast.error(err.message || "Something went wrong. Please try again or use UPI below.");
-      setShowUPI(true);
+      toast.error(err.message || "Something went wrong. Please try again or use the Manual tab.");
+      setActiveTab("manual");
       setLoading(false);
     }
   };
 
-  // ── Manual UPI flow ──
-  const handleManual = async (e) => {
-    e.preventDefault();
-    if (!form.donor_name || !form.email) { toast.error("Name and email are required."); return; }
-    if (!form.transaction_ref) { toast.error("Please enter your UPI transaction reference."); return; }
+  // ── Manual (UPI / QR) flow ──
+  const openQRModal = () => {
+    if (!validateBasics()) return;
+    setShowQR(true);
+  };
+
+  const handleManualDone = async () => {
     setLoading(true);
     try {
-      let proofUrl = form.proof_link;
-      if (proofFile && !proofUrl) {
-        proofUrl = await handleProofUpload(proofFile);
-      }
-      await submitDonation({
-        payment_mode: "manual",
-        proof_link:   proofUrl || form.proof_link,
-      });
+      await submitDonation({ payment_mode: "manual" });
+      setShowQR(false);
+      setCompletedVia("manual");
       setDone(true);
       toast.success("Donation submitted! We'll verify within 24–48 hours.");
     } catch (err) { toast.error(err.message); }
@@ -201,8 +187,11 @@ export default function DonatePage() {
             <h2 className="font-headline-md text-headline-md text-primary mb-3">Thank You! 🙏</h2>
             <p className="font-body-md text-body-md text-on-surface-variant mb-4">
               Your donation of <strong>₹{total.toLocaleString("en-IN")}</strong> has been{" "}
-              {payMode === "razorpay" ? "processed successfully" : "submitted for verification"}.
-              A receipt will be emailed to <strong>{form.email}</strong>.
+              {completedVia === "automated" ? "processed successfully" : "submitted for verification"}.
+              {completedVia === "manual"
+                ? " Once our admin team approves it, a receipt will be emailed to "
+                : " A receipt will be emailed to "}
+              <strong>{form.email}</strong>{completedVia === "manual" ? " and added to your donation history." : "."}
             </p>
             <Link href="/" className="btn-primary inline-flex mt-4">Back to Home</Link>
           </div>
@@ -312,21 +301,11 @@ export default function DonatePage() {
                   </div>
 
                   {/* Step 3: Options */}
-                  <div className="space-y-3 mb-6">
+                  <div className="space-y-3 mb-8">
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input type="checkbox" checked={anon} onChange={e => setAnon(e.target.checked)}
                         className="mt-1 text-secondary focus:ring-secondary rounded" />
                       <span className="font-body-md text-body-md text-on-surface">Keep my donation anonymous</span>
-                    </label>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input type="checkbox" checked={coverFee} onChange={e => setCover(e.target.checked)}
-                        className="mt-1 text-secondary focus:ring-secondary rounded" />
-                      <div className="font-body-md text-body-md text-on-surface">
-                        I'll cover the platform fee (₹{fee})
-                        <span className="font-caption text-caption text-on-surface-variant block">
-                          A 2% fee applies to online payments. This is pre-checked so 100% of your ₹{numAmt.toLocaleString("en-IN")} gift reaches those in need.
-                        </span>
-                      </div>
                     </label>
                   </div>
 
@@ -337,91 +316,100 @@ export default function DonatePage() {
                       placeholder="In memory of… / In honour of…" />
                   </div>
 
-                  {/* ── Razorpay CTA (primary) ── */}
-                  <div className="space-y-4">
-                    {!RAZORPAY_READY && (
-                      <div className="flex items-start gap-3 p-4 bg-secondary-fixed/20 rounded-lg border border-secondary/30">
-                        <AlertCircle className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                        <p className="font-body-md text-body-md text-on-surface">
-                          Online payment gateway is being configured. You can use the UPI option below to donate, or check back soon.
+                  {/* ── Payment Method Tabs ── */}
+                  <div>
+                    <label className="form-label mb-2 block">Choose Payment Method</label>
+                    <div className="flex gap-2 p-1 bg-surface-container rounded-xl mb-6">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("manual")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-label-md text-label-md font-semibold transition-all ${
+                          activeTab === "manual" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
+                        }`}
+                      >
+                        <Smartphone className="w-4 h-4" /> Manual (UPI / QR)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("automated")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-label-md text-label-md font-semibold transition-all ${
+                          activeTab === "automated" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4" /> Automated (Card / NetBanking)
+                      </button>
+                    </div>
+
+                    {/* ── Manual tab ── */}
+                    {activeTab === "manual" && (
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3 p-4 bg-surface-container-low rounded-lg border border-outline-variant/30">
+                          <QrCode className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                          <p className="font-body-md text-body-md text-on-surface">
+                            Tap <strong>Pay Now</strong> to get a UPI QR code, scan it with any UPI app, and pay. No screenshots or reference numbers needed — just tap <strong>Done</strong> once you've paid. Our team verifies manual donations within 24–48 hours.
+                          </p>
+                        </div>
+                        <div className="p-4 bg-primary-fixed rounded-lg font-body-md text-body-md text-on-primary-fixed">
+                          You will pay <strong>₹{numAmt.toLocaleString("en-IN")}</strong> — no gateway fee applies to manual payments.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={openQRModal}
+                          disabled={numAmt < 10}
+                          className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <Smartphone className="w-5 h-5" />
+                          Pay ₹{numAmt.toLocaleString("en-IN")} via UPI
+                        </button>
+                        <p className="font-caption text-caption text-on-surface-variant text-center">
+                          Manual donations are verified within 24–48 hours. Receipt emailed after approval.
                         </p>
                       </div>
                     )}
 
-                    <div className="p-4 bg-primary-fixed rounded-lg font-body-md text-body-md text-on-primary-fixed">
-                      You will be charged <strong>₹{total.toLocaleString("en-IN")}</strong>.
-                      {coverFee && <span className="font-caption text-caption block mt-1 text-on-primary-fixed-variant">Includes ₹{fee} platform fee — thank you for covering it!</span>}
-                    </div>
+                    {/* ── Automated tab ── */}
+                    {activeTab === "automated" && (
+                      <div className="space-y-4">
+                        {!RAZORPAY_READY && (
+                          <div className="flex items-start gap-3 p-4 bg-secondary-fixed/20 rounded-lg border border-secondary/30">
+                            <AlertCircle className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                            <p className="font-body-md text-body-md text-on-surface">
+                              Online payment gateway is being configured. You can use the Manual tab to donate, or check back soon.
+                            </p>
+                          </div>
+                        )}
 
-                    <button
-                      type="button"
-                      onClick={handleRazorpay}
-                      disabled={loading || numAmt < 10}
-                      className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50 flex items-center gap-2"
-                    >
-                      <CreditCard className="w-5 h-5" />
-                      {loading ? "Opening payment…" : `Pay ₹${total.toLocaleString("en-IN")} securely`}
-                    </button>
-                    <p className="font-caption text-caption text-on-surface-variant text-center">
-                      Secured by Razorpay · Card / UPI / NetBanking · No card details stored with us
-                    </p>
-                  </div>
-
-                  {/* ── UPI Alternative toggle ── */}
-                  <div className="mt-8">
-                    <div className="flex items-center gap-4 my-4">
-                      <div className="flex-1 border-t border-outline-variant/40" />
-                      <span className="font-caption text-caption text-on-surface-variant">OR</span>
-                      <div className="flex-1 border-t border-outline-variant/40" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowUPI(!showUPI)}
-                      className="w-full flex items-center justify-center gap-2 py-3 border-2 border-outline-variant text-on-surface-variant rounded-lg font-label-md hover:border-secondary hover:text-secondary transition-all"
-                    >
-                      <Smartphone className="w-4 h-4" />
-                      {showUPI ? "Hide UPI / Manual option" : "Donate via UPI / Bank Transfer instead"}
-                    </button>
-                  </div>
-
-                  {/* ── Manual UPI form (hidden by default) ── */}
-                  {showUPI && (
-                    <form onSubmit={handleManual} className="space-y-4 mt-6 pt-6 border-t border-outline-variant/30">
-                      <p className="font-body-md text-body-md text-on-surface">
-                        <strong>Step 1:</strong> Scan the QR code on the right and pay <strong>₹{total.toLocaleString("en-IN")}</strong> to our UPI ID.<br />
-                        <strong>Step 2:</strong> Paste the transaction reference below and upload the screenshot.
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-                        <div>
-                          <label className="form-label">Transaction Reference # *</label>
-                          <input name="transaction_ref" required value={form.transaction_ref} onChange={handleChange}
-                            className="form-input" placeholder="e.g. TXN982341HM" />
-                        </div>
-                        <div>
-                          <label className="form-label">Upload Payment Screenshot</label>
-                          <label className="flex items-center gap-2 form-input cursor-pointer hover:bg-surface-container transition-colors">
-                            <Upload className="w-4 h-4 text-on-surface-variant flex-shrink-0" />
-                            <span className="font-body-md text-body-md text-on-surface-variant truncate">
-                              {proofFile ? proofFile.name : uploading ? "Uploading…" : "Choose screenshot"}
+                        <label className="flex items-start gap-3 cursor-pointer p-4 bg-surface-container-low rounded-lg border border-outline-variant/30">
+                          <input type="checkbox" checked={coverFee} onChange={e => setCover(e.target.checked)}
+                            className="mt-1 text-secondary focus:ring-secondary rounded" />
+                          <div className="font-body-md text-body-md text-on-surface">
+                            I'd like to additionally cover the ₹{fee} gateway fee
+                            <span className="font-caption text-caption text-on-surface-variant block">
+                              This box is unchecked by default — Helping Mechons absorbs the 2% payment-gateway fee ourselves, not the donor. Check this only if you'd like to voluntarily cover it as well.
                             </span>
-                            <input type="file" accept="image/*" className="hidden"
-                              onChange={e => { const f = e.target.files?.[0]; if (f) setProof(f); }}
-                              disabled={uploading} />
-                          </label>
-                          {form.proof_link && (
-                            <p className="font-caption text-caption text-secondary mt-1">✓ Uploaded</p>
-                          )}
+                          </div>
+                        </label>
+
+                        <div className="p-4 bg-primary-fixed rounded-lg font-body-md text-body-md text-on-primary-fixed">
+                          You will be charged <strong>₹{total.toLocaleString("en-IN")}</strong>.
+                          {coverFee && <span className="font-caption text-caption block mt-1 text-on-primary-fixed-variant">Includes ₹{fee} gateway fee — thank you for covering it!</span>}
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={handleRazorpay}
+                          disabled={loading || numAmt < 10}
+                          className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <CreditCard className="w-5 h-5" />
+                          {loading ? "Opening payment…" : `Pay ₹${total.toLocaleString("en-IN")} securely`}
+                        </button>
+                        <p className="font-caption text-caption text-on-surface-variant text-center">
+                          Secured by Razorpay · Card / UPI / NetBanking · No card details stored with us
+                        </p>
                       </div>
-                      <button type="submit" disabled={loading || uploading || numAmt < 10}
-                        className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50">
-                        {loading ? "Submitting…" : `Submit Donation — ₹${total.toLocaleString("en-IN")}`}
-                      </button>
-                      <p className="font-caption text-caption text-on-surface-variant text-center">
-                        Manual donations are verified within 24–48 hours. Receipt emailed after approval.
-                      </p>
-                    </form>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Trust strip */}
@@ -440,44 +428,19 @@ export default function DonatePage() {
                 </div>
               </div>
 
-              {/* ── RIGHT: QR Sidebar ── */}
+              {/* ── RIGHT: Sidebar ── */}
               <div className="lg:col-span-4 space-y-6">
                 <div className="bg-primary rounded-xl p-6 text-on-primary">
-                  <h3 className="font-headline-md text-headline-md mb-2">Quick Scan</h3>
-                  <p className="font-body-md text-body-md text-on-primary-container mb-4">
-                    Open any UPI app and scan to pay instantly.
-                  </p>
-                  <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center mb-4 border border-outline-variant/20 p-3">
-                    {/* Use static QR from /public/qr-pay.png — place your Google Pay QR there.
-                        Falls back to dynamic generation if file not present. */}
-                    <img
-                      src="/qr-pay.png"
-                      alt="UPI QR Code — Helping Mechons"
-                      className="w-full h-full object-contain rounded-lg"
-                      width={250}
-                      height={250}
-                      onError={(e) => {
-                        // Fallback: generate QR dynamically if static image missing
-                        e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${ORG_UPI_ID}&pn=Helping+Mechons&cu=INR`)}`;
-                        e.currentTarget.onerror = null;
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2 font-body-md text-body-md border-t border-primary-container pt-4">
-                    {[
-                      { label: "Payee",  val: "Helping Mechons" },
-                      { label: "UPI ID", val: ORG_UPI_ID },
-                    ].map(({ label, val }) => (
-                      <div key={label} className="flex justify-between items-center">
-                        <span className="text-on-primary-container text-sm">{label}:</span>
-                        <span className="font-bold text-sm">{val}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <h3 className="font-headline-md text-headline-md mb-2">How It Works</h3>
+                  <ul className="space-y-3 font-body-md text-body-md text-on-primary-container">
+                    <li className="flex gap-3"><span className="font-bold text-secondary-container">1.</span> Fill in your details and pick an amount.</li>
+                    <li className="flex gap-3"><span className="font-bold text-secondary-container">2.</span> Choose Manual (scan & pay via UPI) or Automated (card / netbanking).</li>
+                    <li className="flex gap-3"><span className="font-bold text-secondary-container">3.</span> Manual donations are verified by our admin team; automated ones confirm instantly.</li>
+                  </ul>
                   <div className="mt-4 p-4 bg-secondary rounded-xl">
                     <p className="font-label-md text-label-md text-on-secondary font-bold mb-1">Transparency Promise</p>
                     <p className="font-caption text-caption text-on-secondary/90 leading-relaxed">
-                      Every rupee is tracked. Within 48 hours of verification you'll receive a digital receipt via email.
+                      Every rupee is tracked. Once verified, a digital receipt is emailed and added to your donation history.
                     </p>
                   </div>
                 </div>
@@ -491,9 +454,9 @@ export default function DonatePage() {
                         <span className="text-on-surface-variant">Donation</span>
                         <span className="font-medium">₹{numAmt.toLocaleString("en-IN")}</span>
                       </div>
-                      {coverFee && (
+                      {activeTab === "automated" && coverFee && (
                         <div className="flex justify-between">
-                          <span className="text-on-surface-variant">Platform fee (2%)</span>
+                          <span className="text-on-surface-variant">Gateway fee (2%)</span>
                           <span className="font-medium text-on-surface-variant">₹{fee}</span>
                         </div>
                       )}
@@ -527,6 +490,70 @@ export default function DonatePage() {
         </section>
       </main>
       <Footer />
+
+      {/* ── QR Payment Popup (Manual tab) ── */}
+      {showQR && (
+        <div
+          className="fixed inset-0 bg-primary/60 z-50 flex items-center justify-center p-4"
+          onClick={() => !loading && setShowQR(false)}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => !loading && setShowQR(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-headline-md text-headline-md text-primary">
+              Scan &amp; Pay ₹{numAmt.toLocaleString("en-IN")}
+            </h3>
+
+            <div className="w-56 h-56 mx-auto bg-white rounded-xl flex items-center justify-center border border-outline-variant/30 p-3">
+              <img
+                src="/qr-pay.png"
+                alt="UPI QR Code — Helping Mechons"
+                className="w-full h-full object-contain rounded-lg"
+                width={224}
+                height={224}
+                onError={(e) => {
+                  e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${ORG_UPI_ID}&pn=Helping+Mechons&am=${numAmt}&cu=INR`)}`;
+                  e.currentTarget.onerror = null;
+                }}
+              />
+            </div>
+
+            <div className="space-y-1 font-body-md text-body-md">
+              <p className="text-on-surface-variant">Payee</p>
+              <p className="font-bold text-on-surface">Helping Mechons</p>
+              <p className="text-on-surface-variant mt-2">UPI ID</p>
+              <p className="font-bold text-on-surface">{ORG_UPI_ID}</p>
+            </div>
+
+            <p className="font-body-md text-body-md text-on-surface bg-surface-container-low rounded-lg p-4">
+              Open any UPI app, scan the code above, and pay <strong>₹{numAmt.toLocaleString("en-IN")}</strong>. Once you've completed the payment, tap the button below — no screenshot or reference number needed.
+            </p>
+
+            <button
+              onClick={handleManualDone}
+              disabled={loading}
+              className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50"
+            >
+              {loading ? "Submitting…" : "I've Paid — Done"}
+            </button>
+            <button
+              onClick={() => !loading && setShowQR(false)}
+              className="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

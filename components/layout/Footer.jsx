@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Heart, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Footer() {
@@ -21,13 +21,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
-                <Heart className="w-4 h-4 text-on-secondary fill-current" />
-              </span>
-              <span className="font-headline font-bold text-headline-md leading-none">
-                Helping<br />
-                <span className="text-secondary-container">Mechons</span>
-              </span>
+              <img
+                src="/brand/logo-full.png"
+                alt="Helping Mechons"
+                className="h-16 w-auto object-contain bg-white rounded-lg p-1"
+              />
             </div>
             <p className="text-on-primary-container text-body-md leading-relaxed mb-4">
               Healing lives through medical aid, food distribution, grocery support, education, and orphanage care across India.

@@ -19,6 +19,11 @@ export const metadata = {
     locale: "en_IN",
     type: "website",
   },
+  icons: {
+    icon:     [{ url: "/icon.png", type: "image/png" }, { url: "/favicon.ico" }],
+    apple:    [{ url: "/apple-icon.png" }],
+    shortcut: ["/favicon.ico"],
+  },
 };
 
 export default function RootLayout({ children }) {
