@@ -32,6 +32,7 @@ function DonateForm() {
   const [completedVia,setCompletedVia] = useState("manual");
   const [activeTab,   setActiveTab] = useState("manual");
   const [showQR,      setShowQR]    = useState(false);
+  const [userLoaded,  setUserLoaded] = useState(false);
 
   // Dynamic campaigns fetched from DB
   const [campaigns,   setCampaigns] = useState([]);
@@ -48,7 +49,7 @@ function DonateForm() {
     donor_name: "", email: "", phone: "", campaign_id: "", campaign_name: "", comment: "",
   });
 
-  // On mount: fetch campaigns + recent donors + handle URL param
+  // On mount: fetch campaigns + recent donors + user data + handle URL param
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
 
@@ -58,8 +59,27 @@ function DonateForm() {
       .then(data => { if (data.donors?.length) setRecentDonors(data.donors); })
       .catch(() => {});
 
-    // Fetch active campaigns from Supabase (anon read — public RLS policy)
     const supabase = createClient();
+
+    // ── Auto-populate form if user is logged in ──
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      // Fetch their profile for name and phone
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, display_name, phone")
+        .eq("id", user.id)
+        .single();
+      setForm(f => ({
+        ...f,
+        donor_name: profile?.full_name || profile?.display_name || f.donor_name,
+        email:      user.email || f.email,
+        phone:      profile?.phone || f.phone,
+      }));
+      setUserLoaded(true);
+    });
+
+    // Fetch active campaigns from Supabase (anon read — public RLS policy)
     supabase
       .from("campaigns")
       .select("id, title, slug")
@@ -294,7 +314,14 @@ function DonateForm() {
               {/* ── LEFT: Form ── */}
               <div className="lg:col-span-8 space-y-6">
                 <div className="card p-8 md:p-10">
-                  <h2 className="font-headline-lg text-headline-lg text-primary mb-8">Donation Details</h2>
+                  <div className="flex items-center justify-between mb-8 flex-wrap gap-2">
+                    <h2 className="font-headline-lg text-headline-lg text-primary">Donation Details</h2>
+                    {userLoaded && (
+                      <span className="flex items-center gap-1.5 text-caption text-green-600 bg-green-50 border border-green-200 px-3 py-1 rounded-full text-xs font-medium">
+                        <CheckCircle className="w-3.5 h-3.5" /> Pre-filled from your account
+                      </span>
+                    )}
+                  </div>
 
                   {/* Step 1: Name + Email */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter mb-6">
