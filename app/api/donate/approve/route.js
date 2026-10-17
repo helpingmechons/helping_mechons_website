@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { sendEmail, donationApprovedEmail, donationRejectedEmail } from "@/lib/email/mailer";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 export async function POST(request) {
   try {
@@ -28,7 +29,11 @@ export async function POST(request) {
       .single();
 
     if (fetchErr || !donation) return NextResponse.json({ error: "Donation not found" }, { status: 404 });
-    if (donation.status !== "pending") return NextResponse.json({ error: "Donation is not pending" }, { status: 409 });
+    // 'awaiting_payment' = YouPI checkout whose confirmation never arrived;
+    // an admin who sees the money in the bank can still approve it.
+    if (!["pending", "awaiting_payment"].includes(donation.status)) {
+      return NextResponse.json({ error: "Donation is not pending" }, { status: 409 });
+    }
 
     // Build update payload
     // If admin supplied a corrected amount, update final_amount too —
@@ -56,10 +61,13 @@ export async function POST(request) {
       .from("donations")
       .update(updatePayload)
       .eq("id", id)
+      .eq("status", donation.status) // don't double-approve if a webhook got there first
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    if (!updated) return NextResponse.json({ error: "Donation was updated by someone else — refresh and try again." }, { status: 409 });
+    if (action === "approve") revalidatePublicPages();
 
     // Add to ledger if approved (use the final approved amount — corrected or original)
     if (action === "approve") {

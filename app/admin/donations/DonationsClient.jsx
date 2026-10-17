@@ -3,7 +3,13 @@ import { useState, useTransition } from "react";
 import { CheckCircle, XCircle, ExternalLink, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
-const FILTERS = ["all", "pending", "approved", "rejected"];
+const FILTERS = ["all", "pending", "awaiting_payment", "approved", "rejected"];
+const FILTER_LABEL = { awaiting_payment: "awaiting UPI" };
+const MODE_LABEL = {
+  automated: { short: "Online",      long: "Online (Razorpay)" },
+  youpi:     { short: "Instant UPI", long: "Instant UPI (YouPI, auto-verified)" },
+  manual:    { short: "Manual",      long: "Manual (UPI / QR)" },
+};
 
 export default function DonationsClient({ donations: initial }) {
   const [donations,    setDonations] = useState(initial);
@@ -106,7 +112,7 @@ export default function DonationsClient({ donations: initial }) {
               className={`px-4 py-2 rounded-lg text-label-md capitalize transition-all ${
                 filter === f ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
               }`}>
-              {f}
+              {FILTER_LABEL[f] || f}
               <span className="ml-2 text-xs">
                 ({f === "all" ? donations.length : donations.filter(d => d.status === f).length})
               </span>
@@ -142,11 +148,11 @@ export default function DonationsClient({ donations: initial }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`badge text-xs capitalize ${
-                      d.payment_mode === "automated"
-                        ? "bg-secondary-fixed text-on-secondary-fixed"
-                        : "bg-surface-container text-on-surface-variant"
+                      d.payment_mode === "manual"
+                        ? "bg-surface-container text-on-surface-variant"
+                        : "bg-secondary-fixed text-on-secondary-fixed"
                     }`}>
-                      {d.payment_mode === "automated" ? "Online" : "Manual"}
+                      {(MODE_LABEL[d.payment_mode] || MODE_LABEL.manual).short}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-sm text-on-surface-variant">{d.transaction_ref || "—"}</td>
@@ -155,10 +161,10 @@ export default function DonationsClient({ donations: initial }) {
                     {new Date(d.created_at).toLocaleDateString("en-IN")}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`badge ${STATUS_BADGE[d.status] || "badge-pending"} capitalize`}>{d.status}</span>
+                    <span className={`badge ${STATUS_BADGE[d.status] || "badge-pending"} capitalize`}>{FILTER_LABEL[d.status] || d.status}</span>
                   </td>
                   <td className="px-4 py-3">
-                    {d.status === "pending" && (
+                    {["pending", "awaiting_payment"].includes(d.status) && (
                       <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                         <button onClick={() => openDetail(d)} disabled={isPending}
                           className="p-2 rounded-lg bg-primary-fixed text-on-primary-fixed hover:opacity-80 transition-opacity"
@@ -194,7 +200,7 @@ export default function DonationsClient({ donations: initial }) {
                 ["Reference", selected.transaction_ref || "—"],
                 ["Message",   selected.comment || "—"],
                 ["Date",      new Date(selected.created_at).toLocaleString("en-IN")],
-                ["Mode",      selected.payment_mode === "automated" ? "Online (Razorpay)" : "Manual (UPI / QR)"],
+                ["Mode",      (MODE_LABEL[selected.payment_mode] || MODE_LABEL.manual).long],
               ].map(([k, v]) => (
                 <div key={k} className="flex gap-4">
                   <dt className="text-on-surface-variant w-24 flex-shrink-0">{k}</dt>
@@ -212,7 +218,7 @@ export default function DonationsClient({ donations: initial }) {
               )}
             </dl>
 
-            {selected.status === "pending" && (
+            {selecte["pending", "awaiting_payment"].includes(d.status) && (
               <>
                 {/* ── Amount correction field ── */}
                 <div className="pt-2 p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">

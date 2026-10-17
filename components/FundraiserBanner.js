@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Clock, ArrowRight } from "lucide-react";
 
 function daysLeft(end) {
@@ -9,7 +9,7 @@ function daysLeft(end) {
 }
 
 export default async function FundraiserBanner() {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const today = new Date().toISOString().split("T")[0];
   const { data: fundraisers } = await supabase
     .from("campaigns")
@@ -40,7 +40,7 @@ export default async function FundraiserBanner() {
               <div key={f.id} className="bg-primary-container rounded-xl overflow-hidden flex flex-col">
                 {img && (
                   <div className="relative h-44 w-full">
-                    <Image src={img} alt={f.title} fill className="object-cover" />
+                    <Image src={img} alt={f.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-primary/70 to-transparent" />
                     {days !== null && (
                       <div className="absolute top-3 right-3">

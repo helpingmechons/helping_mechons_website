@@ -55,8 +55,9 @@ module.exports = {
         "on-error-container":     "#93000a",
       },
       fontFamily: {
-        headline: ['"Source Serif 4"', "Georgia", "serif"],
-        body:     ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        // CSS variables come from next/font in app/layout.js
+        headline: ["var(--font-headline)", '"Source Serif 4"', "Georgia", "serif"],
+        body:     ["var(--font-body)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       fontSize: {
         "headline-xl":        ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700" }],

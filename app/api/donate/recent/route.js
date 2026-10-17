@@ -22,6 +22,10 @@ function relativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
+// Next 14 caches GET route handlers forever by default, which froze this
+// list at whatever it was on deploy day. Refresh it at most once a minute.
+export const revalidate = 60;
+
 export async function GET() {
   try {
     const supabase = createAdminClient();

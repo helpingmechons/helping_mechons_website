@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import Razorpay from "razorpay";
-
-let rz;
-function getRazorpay() {
-  if (!rz) {
-    rz = new Razorpay({
-      key_id:     process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
-  }
-  return rz;
-}
+import { getRazorpay, isRazorpayConfigured } from "@/lib/payments/razorpay";
 
 export async function POST(request) {
   try {
@@ -19,7 +8,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    if (!isRazorpayConfigured()) {
       return NextResponse.json(
         { error: "Razorpay is not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your environment variables." },
         { status: 503 }

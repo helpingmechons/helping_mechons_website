@@ -59,7 +59,7 @@ export default function OurWorkPage() {
                 className="flex-1 h-40 md:h-52 overflow-hidden cursor-pointer relative group"
                 onClick={() => setLightbox(p)}
               >
-                <Image src={p.src} alt={p.alt} fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                <Image src={p.src} alt={p.alt} fill sizes="25vw" className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
               </div>
             ))}
           </div>
@@ -76,7 +76,7 @@ export default function OurWorkPage() {
                     className="relative h-52 overflow-hidden cursor-pointer"
                     onClick={() => setLightbox({ src: cause.img, alt: cause.label })}
                   >
-                    <Image src={cause.img} alt={cause.label} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={cause.img} alt={cause.label} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all flex items-center justify-center">
                       <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -142,7 +142,7 @@ export default function OurWorkPage() {
             <button onClick={() => setLightbox(null)} className="absolute -top-12 right-0 text-white hover:text-secondary-container transition-colors">
               <X className="w-8 h-8" />
             </button>
-            <Image src={lightbox.src} alt={lightbox.alt} width={900} height={600}
+            <Image src={lightbox.src} alt={lightbox.alt} width={900} height={600} sizes="(min-width: 768px) 768px, 100vw"
               className="w-full h-auto rounded-xl shadow-2xl object-cover max-h-[80vh]" />
           </div>
         </div>

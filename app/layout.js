@@ -1,6 +1,20 @@
 import "./globals.css";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import { Toaster } from "sonner";
 import MobileDonateBar from "@/components/layout/MobileDonateBar";
+
+// Fonts are self-hosted by next/font: downloaded at build time, served from
+// our own domain, preloaded, with font-display: swap. That avoids two extra
+// connections to Google (and a render-blocking stylesheet) on every visit,
+// which matters a lot on slow mobile networks.
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-body" });
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin"],
+  style:   ["normal", "italic"],
+  axes:    ["opsz"],
+  display: "swap",
+  variable: "--font-headline",
+});
 
 export const metadata = {
   title: { default: "Helping Mechons", template: "%s | Helping Mechons" },
@@ -28,15 +42,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
       <body className="bg-background text-on-surface font-body antialiased pb-16 md:pb-0">
         {children}
         <MobileDonateBar />

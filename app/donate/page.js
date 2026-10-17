@@ -8,7 +8,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import {
   Shield, Globe, CheckCircle, CreditCard, Smartphone,
-  AlertCircle, QrCode, X, Lock,
+  AlertCircle, QrCode, X, Lock, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +18,27 @@ const PLATFORM_FEE   = 0.02;
 const RAZORPAY_KEY   = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 const RAZORPAY_READY = Boolean(RAZORPAY_KEY);
 const ORG_UPI_ID     = process.env.NEXT_PUBLIC_ORG_UPI_ID || "tdurgaprasad503@ybl";
+// Self-hosted YouPI PG gateway (0% fee UPI, auto-verified). Turn on with
+// NEXT_PUBLIC_YOUPI_ENABLED=true once the gateway is running — see README.
+const YOUPI_READY    = process.env.NEXT_PUBLIC_YOUPI_ENABLED === "true";
+
+// Razorpay's checkout.js is ~150 KB; only download it when the donor
+// actually picks card / netbanking, not for every visitor.
+let razorpayScript;
+function loadRazorpay() {
+  if (typeof window !== "undefined" && window.Razorpay) return Promise.resolve(true);
+  if (!razorpayScript) {
+    razorpayScript = new Promise((resolve) => {
+      const el = document.createElement("script");
+      el.src = "https://checkout.razorpay.com/v1/checkout.js";
+      el.async = true;
+      el.onload  = () => resolve(true);
+      el.onerror = () => { razorpayScript = null; resolve(false); };
+      document.body.appendChild(el);
+    });
+  }
+  return razorpayScript;
+}
 
 // ── Inner component (uses useSearchParams — must be inside <Suspense>) ──────
 function DonateForm() {
@@ -30,7 +51,7 @@ function DonateForm() {
   const [loading,     setLoading]  = useState(false);
   const [done,        setDone]     = useState(false);
   const [completedVia,setCompletedVia] = useState("manual");
-  const [activeTab,   setActiveTab] = useState("manual");
+  const [activeTab,   setActiveTab] = useState(YOUPI_READY ? "youpi" : "manual");
   const [showQR,      setShowQR]    = useState(false);
   const [userLoaded,  setUserLoaded] = useState(false);
 
@@ -117,6 +138,10 @@ function DonateForm() {
 
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+  useEffect(() => {
+    if (activeTab === "automated" && RAZORPAY_READY) loadRazorpay();
+  }, [activeTab]);
+
   const validateBasics = () => {
     if (!form.donor_name || !form.email) { toast.error("Please enter your name and email first."); return false; }
     if (numAmt < 10) { toast.error("Minimum donation is ₹10."); return false; }
@@ -165,7 +190,7 @@ function DonateForm() {
         return;
       }
 
-      if (typeof window.Razorpay === "undefined") {
+      if (!(await loadRazorpay())) {
         toast.error("Payment gateway failed to load. Please refresh or use the Manual tab.");
         setActiveTab("manual");
         setLoading(false);
@@ -183,10 +208,12 @@ function DonateForm() {
         theme:        { color: "#9a442d" },
         handler: async (response) => {
           try {
+            // The server re-verifies these with Razorpay before approving.
             await submitDonation({
-              payment_mode:    "automated",
-              transaction_ref: response.razorpay_payment_id,
-              proof_link:      `razorpay:${response.razorpay_order_id}`,
+              payment_mode:        "automated",
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
             });
             setCompletedVia("automated");
             setDone(true);
@@ -205,6 +232,32 @@ function DonateForm() {
     } catch (err) {
       toast.error(err.message || "Something went wrong. Please try again or use the Manual tab.");
       setActiveTab("manual");
+      setLoading(false);
+    }
+  };
+
+  // ── Instant UPI (YouPI PG) flow ──
+  // Server creates the donation + a checkout session on our own gateway, then
+  // we hand the donor over to the gateway's hosted UPI page. They come back to
+  // /donate/status, which shows the server-verified result.
+  const handleYoupi = async () => {
+    if (!validateBasics()) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/donate/youpi", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, amount: numAmt, is_anonymous: anon }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Could not start UPI payment.", { duration: 6000 });
+        if (res.status === 503 || res.status === 502) setActiveTab("manual");
+        setLoading(false);
+        return;
+      }
+      window.location.href = data.checkoutUrl;
+    } catch {
+      toast.error("Network problem — please check your connection and try again.");
       setLoading(false);
     }
   };
@@ -256,7 +309,6 @@ function DonateForm() {
 
   return (
     <>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
       <Navbar />
       <main>
 
@@ -297,7 +349,7 @@ function DonateForm() {
               </div>
             </div>
             <div className="relative h-80 md:h-[480px] rounded-xl overflow-hidden shadow-xl">
-              <Image src={getPhoto("orphanage-care")} alt="Humanitarian aid delivery" fill className="object-cover" />
+              <Image src={getPhoto("orphanage-care")} alt="Humanitarian aid delivery" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent" />
               <div className="absolute bottom-8 left-8 text-on-primary">
                 <p className="font-headline-md text-headline-md italic">&quot;Restoring hope, one life at a time.&quot;</p>
@@ -419,7 +471,18 @@ function DonateForm() {
                   {/* ── Payment Method Tabs ── */}
                   <div>
                     <label className="form-label mb-2 block">Choose Payment Method</label>
-                    <div className="flex gap-2 p-1 bg-surface-container rounded-xl mb-6">
+                    <div className={`flex ${YOUPI_READY ? "flex-col sm:flex-row" : ""} gap-2 p-1 bg-surface-container rounded-xl mb-6`}>
+                      {YOUPI_READY && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("youpi")}
+                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-label-md text-label-md font-semibold transition-all ${
+                            activeTab === "youpi" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
+                          }`}
+                        >
+                          <Zap className="w-4 h-4" /> Instant UPI
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setActiveTab("manual")}
@@ -439,6 +502,33 @@ function DonateForm() {
                         <CreditCard className="w-4 h-4" /> Automated (Card / NetBanking)
                       </button>
                     </div>
+
+                    {/* ── Instant UPI (YouPI) tab ── */}
+                    {activeTab === "youpi" && (
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3 p-4 bg-surface-container-low rounded-lg border border-outline-variant/30">
+                          <Zap className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                          <p className="font-body-md text-body-md text-on-surface">
+                            Pay with any UPI app (GPay, PhonePe, Paytm…). Your payment is <strong>confirmed automatically</strong> in seconds and your receipt is emailed straight away. No waiting for manual verification.
+                          </p>
+                        </div>
+                        <div className="p-4 bg-primary-fixed rounded-lg font-body-md text-body-md text-on-primary-fixed">
+                          You will pay <strong>₹{numAmt.toLocaleString("en-IN")}</strong>. 100% reaches Helping Mechons, with zero gateway fees.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleYoupi}
+                          disabled={loading || numAmt < 10}
+                          className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <Zap className="w-5 h-5" />
+                          {loading ? "Opening UPI checkout…" : `Pay ₹${numAmt.toLocaleString("en-IN")} via Instant UPI`}
+                        </button>
+                        <p className="font-caption text-caption text-on-surface-variant text-center">
+                          You&apos;ll be taken to our secure UPI checkout page and brought back here when done.
+                        </p>
+                      </div>
+                    )}
 
                     {/* ── Manual tab ── */}
                     {activeTab === "manual" && (
@@ -534,7 +624,7 @@ function DonateForm() {
                   <h3 className="font-headline-md text-headline-md mb-2">How It Works</h3>
                   <ul className="space-y-3 font-body-md text-body-md text-on-primary-container">
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">1.</span> Fill in your details and pick an amount.</li>
-                    <li className="flex gap-3"><span className="font-bold text-secondary-container">2.</span> Choose Manual (scan &amp; pay via UPI) or Automated (card / netbanking).</li>
+                    <li className="flex gap-3"><span className="font-bold text-secondary-container">2.</span> Choose {YOUPI_READY ? "Instant UPI, " : ""}Manual (scan &amp; pay via UPI) or Automated (card / netbanking).</li>
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">3.</span> Manual donations are verified by our admin team; automated ones confirm instantly.</li>
                   </ul>
                   <div className="mt-4 p-4 bg-secondary rounded-xl">

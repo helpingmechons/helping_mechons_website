@@ -9,6 +9,7 @@ const STATUS = {
   approved: { class: "badge-approved", icon: <CheckCircle className="w-3 h-3" />, label: "Allocated" },
   pending:  { class: "badge-pending",  icon: <Clock className="w-3 h-3" />,        label: "Pending"   },
   rejected: { class: "badge-rejected", icon: <XCircle className="w-3 h-3" />,      label: "Rejected"  },
+  awaiting_payment: { class: "badge-pending", icon: <Clock className="w-3 h-3" />, label: "Awaiting payment" },
 };
 
 const ACHIEVEMENTS = [

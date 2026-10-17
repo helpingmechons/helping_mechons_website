@@ -417,6 +417,110 @@ Vercel will automatically rebuild and redeploy within ~1 minute.
 
 ---
 
+## Step 9 — Keep Supabase From Pausing (Free Tier)
+
+Supabase pauses free projects after about a week with no database activity. The site has a daily Vercel Cron job, `/api/cron/keep-alive`, that does a real read **and** write against the database so the project always counts as active.
+
+1. Run `supabase/migrations/005_keepalive_youpi_and_rls_fix.sql` in **Supabase → SQL Editor** (creates the `keep_alive` heartbeat table).
+2. Make sure `CRON_SECRET` is set in **Vercel → Settings → Environment Variables** (Production). Vercel sends it to cron routes automatically.
+3. Redeploy. In **Vercel → Settings → Cron Jobs** you should now see both `/api/cron/cleanup-unconfirmed` and `/api/cron/keep-alive`. Click **Run** on keep-alive once and check that it returns `{"ok":true,...}`.
+
+Notes:
+- Cron jobs only run on the **Production** deployment, not on preview URLs.
+- Check it's working any time with `select * from keep_alive;` in the SQL Editor. `last_ping` should never be more than about a day old.
+- Optional extra safety net: add a free uptime monitor (e.g. UptimeRobot or cron-job.org) that calls `https://YOUR-SITE/api/cron/keep-alive` every few days with the header `Authorization: Bearer <CRON_SECRET>`.
+
+---
+
+## Step 10 — YouPI PG: 0% Fee Instant UPI (Optional)
+
+[YouPI PG](https://github.com/gxurav1710/YouPI-PG) is a **self-hosted** UPI gateway. Donors pay with any UPI app, the money goes straight into the NGO's bank account with no gateway fee, and the payment is confirmed automatically by reading the bank's credit SMS / email alert. Donations are then approved and receipted instantly, with no manual verification.
+
+**Important: YouPI does NOT run on Vercel.** It is a set of long-running Node.js services with a SQLite database, so it needs an always-on machine you control (a small Linux VPS, or a spare PC that stays on), plus an Android phone with the bank's SIM to read the credit SMS. The website only talks to it over HTTPS.
+
+```
+Donor → /donate (Vercel) ──create session──▶ YouPI gateway (your machine)
+                                                │  shows UPI QR / app buttons
+Donor pays with GPay/PhonePe ──▶ NGO bank account
+Bank SMS ──▶ YouPI Android observer ──▶ gateway confirms
+gateway ──signed webhook──▶ /api/donate/youpi/webhook (Vercel) → donation approved + receipt emailed
+```
+
+### 10a. Run the gateway on your machine
+Needs Node.js 20+.
+```bash
+git clone https://github.com/gxurav1710/YouPI-PG.git youpi-pg
+cd youpi-pg
+npm install
+cp .env.example .env
+```
+Edit `.env`:
+- `ENCRYPTION_MASTER_KEY`: generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- `JWT_SECRET`: any random string, 32+ characters
+- `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`: your login for the YouPI Merchant Admin. **Change the defaults.**
+- `BASE_CHECKOUT_URL` and `BASE_PAYMENT_API_URL`: both set to your public URL from 10b, e.g. `https://pay.helpingmechons.org`
+- `NODE_ENV=production`
+
+Then:
+```bash
+npm run db:setup   # creates data/youpi_pg.sqlite
+npm start          # starts all services
+```
+Check it with `curl http://localhost:6100/health`, which should return `{"status":"UP"}`.
+
+### 10b. Give it a public HTTPS address
+Point a domain such as `pay.helpingmechons.org` at **port 7000** (the checkout portal, which also proxies `/api/*` to the payment API). The easiest free way is a **Cloudflare Tunnel** (`cloudflared tunnel`), which needs no open ports or static IP. Nginx or Caddy with Let's Encrypt also works.
+
+Expose **only** port 7000. Keep the Merchant Admin (6001) and Control Center (8090) private: reach them over SSH tunnel / LAN, or put them behind Cloudflare Access.
+
+### 10c. Configure the merchant in YouPI Merchant Admin (`http://localhost:6001`)
+1. **Receiving Accounts**: add the NGO's UPI ID (e.g. the `NEXT_PUBLIC_ORG_UPI_ID`) and payee name "Helping Mechons", and make it active.
+2. **Settings / Branding**:
+   - Selling mode **ONLINE**
+   - Enabled payment methods: **UPI only**. **Turn off COD** (cash-on-delivery makes no sense for donations; the website holds any non-UPI "success" for admin review anyway).
+   - **Webhook URL**: `https://YOUR-SITE/api/donate/youpi/webhook`
+   - Copy the **Webhook Secret** and the **Merchant ID**. You need them in 10e.
+   - Optionally white-label it: name, logo and colours of Helping Mechons.
+
+### 10d. Connect a payment observer
+This is how YouPI learns that money arrived. Pick at least one (see `docs/OBSERVERS_SETUP.md` in the YouPI repo):
+- **Android observer (recommended):** install `apps/android-observer-app/youpi-sms-gateway.apk` on an Android phone that has the bank-registered SIM, keep it charged and online, and pair it by scanning the QR code in Merchant Admin.
+- **Gmail observer:** connect the Gmail account that receives the bank's credit alerts (OAuth2).
+
+### 10e. Connect the website
+1. Run migration `005_keepalive_youpi_and_rls_fix.sql` in Supabase (if you haven't already in Step 9).
+2. In **Vercel → Environment Variables** add:
+   | Variable | Value |
+   |---|---|
+   | `YOUPI_API_URL` | `https://pay.helpingmechons.org` (your 10b URL) |
+   | `YOUPI_MERCHANT_ID` | Merchant ID from 10c |
+   | `YOUPI_WEBHOOK_SECRET` | Webhook secret from 10c (server-only, never `NEXT_PUBLIC_`) |
+   | `NEXT_PUBLIC_YOUPI_ENABLED` | `true` |
+3. Redeploy. `/donate` now shows an **Instant UPI** tab (selected by default).
+
+### 10f. Test with ₹10
+Donate ₹10 via Instant UPI → pay → you should land on `/donate/status`, see "Thank You", get the receipt email, and the donation should appear as **approved / Instant UPI** in `/admin/donations` with a ledger entry.
+
+### How outcomes map to donations
+| YouPI outcome | Donation status | Why |
+|---|---|---|
+| `SUCCESS` (UPI, exact amount) | `approved` + ledger + receipt | Bank confirmed the money |
+| `SUCCESS` but non-UPI or wrong amount | `pending` | Admin double-checks |
+| `FAILED` | `pending` | Donor said they paid but no bank alert matched in time. Admin checks the bank statement. |
+| `EXPIRED` / `CANCELLED` | `rejected` (no email) | Checkout abandoned |
+| no answer yet | `awaiting_payment` | Shown under the "awaiting UPI" filter in admin. An admin can still approve it if the money is in the bank. |
+
+If a webhook is ever lost, `/donate/status` also asks the gateway directly (server-to-server), so the donation still gets confirmed.
+
+### Things to know before relying on it
+- **Uptime is on you.** If the machine, the tunnel or the observer phone is down, Instant UPI fails. The website then tells donors to use the Manual (UPI / QR) tab, so donations never stop completely.
+- YouPI lets **one donor pay at a time per UPI ID** (others wait in a short queue), so it can match payments exactly by amount. That's fine for NGO volumes.
+- The YouPI checkout may ask donors to verify their phone (WhatsApp OTP) before paying.
+- The YouPI repo has no LICENSE file. Confirm with its author that you're allowed to use it.
+- Collecting donations into a personal UPI ID can run against your bank's terms at volume. A current-account / merchant UPI ID in the NGO's name is safer for 80G receipts and audits.
+
+---
+
 ## Environment Variables Reference
 
 Full list in `.env.example`. Never commit `.env.local` — it is in `.gitignore`.
@@ -435,4 +539,3 @@ Full list in `.env.example`. Never commit `.env.local` — it is in `.gitignore`
 ## Support
 
 Email: helpingmechons@gmail.com
->>>>>>> 8639d2e (Initial commit — Helping Mechons)

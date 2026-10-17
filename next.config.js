@@ -26,25 +26,17 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // ── HTTP cache headers for static assets ──
+  // ── HTTP cache headers for static files in /public ──
+  // Only files that never change per-user. (A catch-all "/(.*)" rule used to
+  // be here, which also marked /profile, /admin and /api/* responses as
+  // publicly cacheable for an hour.) Pages and /_next/static get correct
+  // caching from Next.js / Vercel automatically.
   async headers() {
+    const longCache = [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }];
     return [
-      {
-        source: "/(.*)",
-        headers: [
-          // Allow browser to cache fonts / images / scripts aggressively
-          {
-            key: "Cache-Control",
-            value: "public, max-age=3600, stale-while-revalidate=86400",
-          },
-        ],
-      },
-      {
-        source: "/brand/(.*)",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=604800, immutable" },
-        ],
-      },
+      { source: "/brand/:path*",  headers: longCache },
+      { source: "/photos/:path*", headers: longCache },
+      { source: "/qr-pay.png",    headers: longCache },
     ];
   },
 

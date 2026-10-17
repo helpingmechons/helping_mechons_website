@@ -1,18 +1,49 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { sendEmail, donationReceivedEmail, donationApprovedEmail } from "@/lib/email/mailer";
+import { verifyRazorpayPayment } from "@/lib/payments/razorpay";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      donor_name, email, phone, amount, final_amount, fee_covered_by_donor,
-      payment_mode, transaction_ref, proof_link, comment, is_anonymous,
+      donor_name, email, phone, fee_covered_by_donor,
+      payment_mode, comment, is_anonymous,
       campaign_id, campaign_name,
     } = body;
+    let { amount, final_amount, transaction_ref, proof_link } = body;
 
     if (!donor_name || !email || !amount) {
       return NextResponse.json({ error: "donor_name, email, and amount are required." }, { status: 400 });
+    }
+
+    // Automated (Razorpay) donations are auto-approved, so the browser's word
+    // is not enough: verify the checkout signature and fetch the payment from
+    // Razorpay. The amount recorded is what Razorpay says was paid, never the
+    // amount the request claims.
+    const isAutomated = payment_mode === "automated";
+    if (isAutomated) {
+      let verified;
+      try {
+        verified = await verifyRazorpayPayment(body);
+      } catch (verifyErr) {
+        console.warn("Razorpay verification failed:", verifyErr.message);
+        return NextResponse.json({ error: "Payment could not be verified." }, { status: 400 });
+      }
+
+      const adminCheck = createAdminClient();
+      const { data: existing } = await adminCheck
+        .from("donations").select("id, status").eq("transaction_ref", verified.paymentId).maybeSingle();
+      if (existing) {
+        // Same payment submitted twice (double-click, retry) — don't record it again.
+        return NextResponse.json({ id: existing.id, status: existing.status }, { status: 200 });
+      }
+
+      final_amount    = verified.amountRupees;
+      amount          = Math.min(Number(amount), verified.amountRupees);
+      transaction_ref = verified.paymentId;
+      proof_link      = `razorpay:${verified.orderId}`;
     }
 
     // Get authenticated user if any
@@ -53,7 +84,7 @@ export async function POST(request) {
     }
 
     // Automated payments (Razorpay) are auto-approved — money is already captured
-    const isAutomated = payment_mode === "automated";
+    // and was verified above.
     const status = isAutomated ? "approved" : "pending";
     const approvedAt = isAutomated ? new Date().toISOString() : null;
 
@@ -66,7 +97,7 @@ export async function POST(request) {
       amount:               Number(amount),
       final_amount:         Number(final_amount || amount),
       fee_covered_by_donor: Boolean(fee_covered_by_donor),
-      payment_mode:         payment_mode || "manual",
+      payment_mode:         isAutomated ? "automated" : "manual",
       transaction_ref:      transaction_ref || null,
       proof_link:           proof_link || null,
       comment:              comment || null,
@@ -89,7 +120,8 @@ export async function POST(request) {
         campaignTitle = camp?.title || null;
       }
 
-      await adminSb.from("ledger_entries").insert({
+      // Supabase query builders have no .catch() — check the returned error instead.
+      const { error: ledgerErr } = await adminSb.from("ledger_entries").insert({
         type:           "credit",
         amount:         Number(final_amount || amount),
         note:           `Donation from ${donor_name} (automated / Razorpay)`,
@@ -97,7 +129,10 @@ export async function POST(request) {
         reference_type: "donation",
         reference_id:   donation.id,
         created_by:     null, // system-generated, no admin actor
-      }).catch(err => console.error("Ledger insert error:", err.message));
+      });
+      if (ledgerErr) console.error("Ledger insert error:", ledgerErr.message);
+
+      revalidatePublicPages();
     }
 
     // Send appropriate confirmation email (non-blocking)

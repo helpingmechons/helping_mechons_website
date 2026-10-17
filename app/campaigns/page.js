@@ -104,6 +104,7 @@ export default async function CampaignsPage({ searchParams }) {
                           <Image
                             src={c.cover_image_url || getPhoto("food-distribution-1")}
                             alt={c.title} fill
+                            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute top-3 left-3 flex gap-1 flex-wrap">

@@ -4,12 +4,22 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getPhoto } from "@/lib/images/drivePhotos";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Heart, MapPin, Calendar, CheckCircle, Quote, ArrowLeft, BadgeCheck } from "lucide-react";
 import CampaignDonateForm from "./CampaignDonateForm";
 
+// Cached on the CDN, refreshed at most once a minute and right after a
+// donation is approved (lib/revalidate.js).
+export const revalidate = 60;
+
+// No campaigns are pre-built at deploy time; each one is rendered on its
+// first visit and then served from the cache.
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }) {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
   // Only OR in the id.eq. clause when params.id is actually a UUID — a slug
   // like "emergency-medical-fund" is not valid input for a uuid column, and
@@ -24,7 +34,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function CampaignDetailPage({ params }) {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const { id }   = params;
   const isUuid   = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -132,7 +142,7 @@ export default async function CampaignDetailPage({ params }) {
         <section className="relative h-64 md:h-96 overflow-hidden">
           <Image
             src={campaign.cover_image_url || getPhoto("food-distribution-1")}
-            alt={campaign.title} fill className="object-cover" priority
+            alt={campaign.title} fill sizes="100vw" className="object-cover" priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent" />
           <div className="absolute bottom-6 left-0 right-0 section-container">
@@ -281,7 +291,7 @@ export default async function CampaignDetailPage({ params }) {
                 <div className="grid grid-cols-3 gap-3">
                   {PHOTO_GRID.map((src, i) => (
                     <div key={i} className={`relative rounded-xl overflow-hidden ${i === 0 ? "col-span-3 h-52" : "h-32"}`}>
-                      <Image src={src} alt={`Campaign photo ${i + 1}`} fill className="object-cover hover:scale-105 transition-transform duration-500" />
+                      <Image src={src} alt={`Campaign photo ${i + 1}`} fill sizes={i === 0 ? "(min-width: 1024px) 66vw, 100vw" : "(min-width: 1024px) 22vw, 33vw"} className="object-cover hover:scale-105 transition-transform duration-500" />
                     </div>
                   ))}
                 </div>
@@ -391,7 +401,7 @@ export default async function CampaignDetailPage({ params }) {
                   <Link key={c.id} href={`/campaigns/${c.slug || c.id}`} className="card group hover:shadow-lift transition-shadow">
                     <div className="relative h-40 overflow-hidden">
                       <Image src={c.cover_image_url || getPhoto("food-distribution-1")} alt={c.title}
-                        fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                        fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                       {c.is_completed && (
                         <span className="absolute top-2 left-2 badge bg-primary-fixed text-on-primary-fixed text-xs flex items-center gap-1">
                           <BadgeCheck className="w-3 h-3" /> Completed

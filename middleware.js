@@ -10,6 +10,26 @@ export async function middleware(request) {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   // ────────────────────────────────────────────────────────────────────────────
 
+  const path = request.nextUrl.pathname;
+  const isAuthPage   = ["/login", "/signup", "/forgot-password"].some(p => path.startsWith(p));
+  const isProtected  = path.startsWith("/profile") || path.startsWith("/admin");
+  const isAdminRoute = path.startsWith("/admin");
+
+  // ── Fast path for anonymous visitors (most of our traffic) ───────────────────
+  // No Supabase auth cookie means there is no session to validate or refresh,
+  // so skip the network round-trip to Supabase on every page view. Logged-in
+  // users still go through the full getUser() check below.
+  const hasSession = request.cookies.getAll().some(c => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+  if (!hasSession) {
+    if (isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", path);
+      return NextResponse.redirect(url);
+    }
+    return response;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -28,11 +48,6 @@ export async function middleware(request) {
 
   // Use getUser() — validates token server-side, never trusts client-side state
   const { data: { user } } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
-
-  const isAuthPage   = ["/login", "/signup", "/forgot-password"].some(p => path.startsWith(p));
-  const isProtected  = path.startsWith("/profile") || path.startsWith("/admin");
-  const isAdminRoute = path.startsWith("/admin");
 
   // ── Block unauthenticated access to protected pages ──────────────────────────
   if (isProtected && !user) {
@@ -75,7 +90,7 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    // Cover all routes except static assets
-    "/((?!_next/static|_next/image|favicon.ico|photos|icons|api/public).*)",
+    // Cover all routes except static assets and image files
+    "/((?!_next/static|_next/image|favicon.ico|photos|icons|brand|api/public|.*\\.(?:png|jpg|jpeg|gif|svg|webp|avif|ico)$).*)",
   ],
 };

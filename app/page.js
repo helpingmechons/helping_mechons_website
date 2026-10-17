@@ -3,7 +3,7 @@ import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Heart, ArrowRight, CheckCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { getPhoto } from "@/lib/images/drivePhotos";
 import FundraiserBanner from "@/components/FundraiserBanner";
 
@@ -18,8 +18,12 @@ const MARQUEE_PHOTOS = [
   { src: getPhoto("medical-support"),     alt: "Medical aid distribution" },
 ];
 
+// Served from the CDN and rebuilt in the background at most once a minute
+// (and immediately when a donation is approved — see lib/revalidate.js).
+export const revalidate = 60;
+
 export default async function HomePage() {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const { data: campaignsData } = await supabase
     .from("campaigns")
     .select("id, title, slug, description, cover_image_url, category, location")
@@ -35,7 +39,7 @@ export default async function HomePage() {
         {/* ── HERO ── */}
         <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <Image src={getPhoto("food-distribution-1")} alt="Helping Mechons volunteers" fill className="object-cover" priority quality={80} />
+            <Image src={getPhoto("food-distribution-1")} alt="Helping Mechons volunteers" fill sizes="100vw" className="object-cover" priority />
             <div className="absolute inset-0 hero-gradient" />
           </div>
           <div className="relative z-10 section-container text-center py-24">
@@ -111,7 +115,7 @@ export default async function HomePage() {
                   <Link href={`/campaigns/${c.slug || c.id}`}>
                     <div className="relative h-64 overflow-hidden">
                       <Image src={c.cover_image_url || getPhoto("food-distribution-1")} alt={c.title}
-                        fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                        fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                       <span className="absolute top-3 left-3 badge bg-primary-fixed text-on-primary-fixed capitalize">{c.category}</span>
                     </div>
                   </Link>
@@ -136,7 +140,7 @@ export default async function HomePage() {
           <div className="section-container grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <Image src={getPhoto("old-age-care")} alt="Helping Mechons team with beneficiaries"
-                width={600} height={400} className="rounded-2xl shadow-2xl w-full object-cover" />
+                width={600} height={400} sizes="(min-width: 768px) 50vw, 100vw" className="rounded-2xl shadow-2xl w-full object-cover" />
               <div className="absolute -bottom-6 -right-4 bg-secondary p-6 rounded-xl shadow-xl hidden lg:block max-w-xs">
                 <p className="font-headline italic text-on-secondary font-body-md text-body-md">"Transparency is our promise; impact is our proof."</p>
               </div>
@@ -182,7 +186,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {MARQUEE_PHOTOS.slice(0, 4).map((p, i) => (
                 <div key={i} className={`relative rounded-xl overflow-hidden ${i === 0 ? "md:col-span-2 md:row-span-2 h-64 md:h-full" : "h-40 md:h-48"}`}>
-                  <Image src={p.src} alt={p.alt} fill className="object-cover hover:scale-105 transition-transform duration-500" />
+                  <Image src={p.src} alt={p.alt} fill sizes={i === 0 ? "(min-width: 768px) 50vw, 100vw" : "(min-width: 768px) 25vw, 50vw"} className="object-cover hover:scale-105 transition-transform duration-500" />
                 </div>
               ))}
             </div>
