@@ -7,7 +7,7 @@ export default function TermsPage() {
   return (
     <>
       <Navbar />
-      <main className="bg-background min-h-screen">
+      <main id="main" className="bg-background min-h-screen">
         <section className="py-16 bg-primary text-on-primary">
           <div className="section-container">
             <h1 className="font-headline text-headline-xl-mobile text-on-primary mb-3">Terms of Use</h1>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Heart, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getPhoto } from "@/lib/images/drivePhotos";
+import { STATS } from "@/lib/content/site";
 import { toast } from "sonner";
 
 function LoginForm() {
@@ -95,10 +96,10 @@ export default function LoginPage() {
             Login to track your donation history, view impact reports, and stay connected with our mission.
           </p>
           <div className="flex gap-6 mt-8">
-            {[{ stat: "1,200+", label: "Lives" }, { stat: "₹25L+", label: "Raised" }, { stat: "85K", label: "Students" }].map(({ stat, label }) => (
+            {STATS.map(({ value, suffix, label }) => ({ stat: `${value}${suffix}`, label })).map(({ stat, label }) => (
               <div key={label}>
                 <p className="font-headline-md font-bold text-headline-md text-secondary-container">{stat}</p>
-                <p className="font-caption text-caption text-on-primary-container uppercase tracking-wider">{label}</p>
+                <p className="font-caption text-caption text-on-primary-container">{label}</p>
               </div>
             ))}
           </div>

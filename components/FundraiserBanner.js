@@ -23,59 +23,53 @@ export default async function FundraiserBanner() {
   if (!fundraisers?.length) return null;
 
   return (
-    <section className="py-12 bg-secondary">
+    <section className="py-16 md:py-20 bg-marigold-pale border-y border-marigold/40">
       <div className="section-container">
-        <div className="flex items-center gap-2 mb-6">
-          <Clock className="w-5 h-5 text-on-secondary" />
-          <span className="font-label-md text-label-md text-on-secondary uppercase tracking-widest">
-            Limited-Time Fundraisers
+        <div className="flex items-center gap-3 mb-8">
+          <span className="relative flex w-3 h-3">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-ring-red opacity-60 motion-safe:animate-ping" />
+            <span className="relative inline-flex rounded-full w-3 h-3 bg-ring-red" />
           </span>
+          <h2 className="font-headline text-[30px] md:text-[38px] font-bold text-ink leading-none">Fundraisers closing soon</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {fundraisers.map(f => {
             const days = daysLeft(f.end_date);
             const pct  = Math.min(100, Math.round((f.current_amount / f.goal_amount) * 100)) || 0;
             const img  = f.poster_url || f.cover_image_url;
             return (
-              <div key={f.id} className="bg-primary-container rounded-xl overflow-hidden flex flex-col">
+              <article key={f.id} className="group bg-white rounded-3xl overflow-hidden flex flex-col border border-marigold/40 shadow-soft hover:shadow-lift transition-shadow duration-500">
                 {img && (
-                  <div className="relative h-44 w-full">
-                    <Image src={img} alt={f.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary/70 to-transparent" />
+                  <div className="relative h-44 w-full overflow-hidden">
+                    <Image src={img} alt={f.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-transform duration-[1.2s] ease-out-expo group-hover:scale-110" />
                     {days !== null && (
-                      <div className="absolute top-3 right-3">
-                        <span className={`badge ${days <= 2 ? "bg-error text-on-error" : "bg-secondary text-on-secondary"}`}>
-                          {days > 0 ? `${days} day${days !== 1 ? "s" : ""} left` : "Last day!"}
-                        </span>
-                      </div>
+                      <span className={`absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-semibold ${days <= 2 ? "bg-ring-red text-white" : "bg-white text-ink"}`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        {days > 0 ? `${days} day${days !== 1 ? "s" : ""} left` : "Last day"}
+                      </span>
                     )}
                   </div>
                 )}
-                <div className="p-5 flex flex-col flex-grow">
+                <div className="p-6 flex flex-col flex-grow">
                   {f.urgency_label && (
-                    <span className="font-caption text-caption text-secondary-fixed mb-1 uppercase tracking-wider">
-                      {f.urgency_label}
-                    </span>
+                    <span className="text-[14px] font-semibold text-saffron mb-1">{f.urgency_label}</span>
                   )}
-                  <h3 className="font-headline-md text-headline-md text-on-primary-container mb-2 line-clamp-2">{f.title}</h3>
-                  <p className="font-body-md text-body-md text-on-primary-fixed-variant line-clamp-2 mb-4">{f.description}</p>
+                  <h3 className="font-headline text-[24px] leading-tight font-bold text-ink mb-2 line-clamp-2">{f.title}</h3>
+                  <p className="text-[16px] text-on-surface-variant line-clamp-2 mb-5">{f.description}</p>
                   <div className="mt-auto">
-                    <div className="flex justify-between font-caption text-caption text-on-primary-fixed-variant mb-1">
-                      <span>₹{Number(f.current_amount).toLocaleString("en-IN")} raised</span>
-                      <span>{pct}%</span>
+                    <div className="flex justify-between text-[14px] mb-1.5">
+                      <span className="font-semibold text-ink">₹{Number(f.current_amount).toLocaleString("en-IN")} raised</span>
+                      <span className="text-on-surface-variant">{pct}%</span>
                     </div>
-                    <div className="h-2 bg-primary/40 rounded-full overflow-hidden mb-4">
-                      <div className="h-full bg-secondary-container rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                    <div className="progress-bar mb-5">
+                      <div className="progress-fill" style={{ width: `${pct}%` }} />
                     </div>
-                    <Link
-                      href={`/donate?campaign=${f.slug || f.id}`}
-                      className="flex items-center justify-between w-full py-2 px-4 bg-secondary text-on-secondary rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity"
-                    >
-                      Donate Now <ArrowRight className="w-4 h-4" />
+                    <Link href={`/donate?campaign=${f.slug || f.id}`} className="btn-primary w-full justify-between py-3.5">
+                      Donate to this <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>

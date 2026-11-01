@@ -60,11 +60,9 @@ function DonateForm() {
   // Locked campaign (from ?campaign= URL param) — null means unrestricted
   const [lockedCampaign, setLockedCampaign] = useState(null);
 
-  const [recentDonors, setRecentDonors] = useState([
-    { name: "Anonymous", amt: "₹2,500", t: "Just now" },
-    { name: "Priya M.",  amt: "₹500",   t: "5 hours ago" },
-    { name: "Rajesh K.", amt: "₹1,000", t: "Yesterday" },
-  ]);
+  // Real recent donors only (from /api/donate/recent). Empty until loaded —
+  // we never show placeholder names as if they were donors.
+  const [recentDonors, setRecentDonors] = useState([]);
 
   const [form, setForm] = useState({
     donor_name: "", email: "", phone: "", campaign_id: "", campaign_name: "", comment: "",
@@ -284,7 +282,7 @@ function DonateForm() {
     return (
       <>
         <Navbar />
-        <main className="min-h-screen bg-background flex items-center justify-center p-6">
+        <main id="main" className="min-h-screen bg-background flex items-center justify-center p-6">
           <div className="max-w-md w-full card p-10 text-center">
             <div className="w-16 h-16 bg-primary-fixed rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-8 h-8 text-secondary" />
@@ -310,7 +308,7 @@ function DonateForm() {
   return (
     <>
       <Navbar />
-      <main>
+      <main id="main">
 
         {/* ── HERO ── */}
         <section className="py-section-padding bg-background">
@@ -318,10 +316,8 @@ function DonateForm() {
             <div className="space-y-4">
               {lockedCampaign ? (
                 <>
-                  <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-md text-label-md">
-                    CAMPAIGN DONATION
-                  </span>
-                  <h1 className="font-headline-xl-mobile text-headline-xl-mobile md:font-headline-xl md:text-headline-xl text-primary leading-tight">
+                  <p className="text-[15px] font-medium text-saffron">Giving to a campaign</p>
+                  <h1 className="font-headline text-display text-ink">
                     {lockedCampaign.title}
                   </h1>
                   <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
@@ -330,30 +326,26 @@ function DonateForm() {
                 </>
               ) : (
                 <>
-                  <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-md text-label-md">DIGNIFIED URGENCY</span>
-                  <h1 className="font-headline-xl-mobile text-headline-xl-mobile md:font-headline-xl md:text-headline-xl text-primary leading-tight">
-                    Your Contribution is the Final, Vital Piece.
+                  <p className="text-[15px] font-medium text-saffron">Donate</p>
+                  <h1 className="font-headline text-display text-ink">
+                    Fund the next drive.
                   </h1>
                   <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
-                    Every donation provides medical aid, food security, and education to those in need across India.
+                    Your gift buys food, medicine, school kits and groceries for people in and around Visakhapatnam.
+                    Every rupee goes to programmes and is logged on our Transparency page.
                   </p>
                 </>
               )}
-              <div className="flex items-center gap-4 py-4">
-                <div className="flex -space-x-3">
-                  {["RM","AS","PK"].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-surface bg-primary-fixed flex items-center justify-center text-xs font-bold text-on-primary-fixed">{i}</div>
-                  ))}
-                </div>
-                <span className="font-label-md text-label-md text-on-surface-variant">Joined by 1,200+ Donors</span>
-              </div>
+              <ul className="flex flex-wrap gap-x-5 gap-y-2 pt-2 text-[15px] text-on-surface-variant">
+                <li className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-ring-green" /> Receipt by email</li>
+                <li className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-ring-green" /> UPI, card or net banking</li>
+                <li className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-ring-green" /> Give anonymously if you like</li>
+              </ul>
             </div>
-            <div className="relative h-80 md:h-[480px] rounded-xl overflow-hidden shadow-xl">
+            <div className="relative h-72 md:h-[440px] rounded-[28px] overflow-hidden shadow-lift">
               <Image src={getPhoto("orphanage-care")} alt="Humanitarian aid delivery" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent" />
-              <div className="absolute bottom-8 left-8 text-on-primary">
-                <p className="font-headline-md text-headline-md italic">&quot;Restoring hope, one life at a time.&quot;</p>
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
+              <p className="absolute bottom-6 left-6 right-6 text-white font-headline text-[26px] md:text-[32px] font-bold leading-tight">Restoring hope, one life at a time.</p>
             </div>
           </div>
         </section>
@@ -605,13 +597,13 @@ function DonateForm() {
                 {/* Trust strip */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
-                    { icon: <Shield className="w-6 h-6" />,       label: "92% Efficiency",   desc: "Your funds go directly to on-ground aid with minimal overhead." },
+                    { icon: <Shield className="w-6 h-6" />,       label: "Goes to programmes", desc: "Public donations fund food, medicine, kits and groceries. Running costs are covered separately." },
                     { icon: <CheckCircle className="w-6 h-6" />,  label: "Verified & Secure", desc: "Every donation is manually verified by our trusted admin team." },
                     { icon: <Globe className="w-6 h-6" />,        label: "Real Impact",       desc: "Serving communities across Visakhapatnam, Hyderabad and beyond." },
                   ].map(({ icon, label, desc }) => (
                     <div key={label} className="card p-5 text-center">
-                      <div className="w-12 h-12 bg-primary-fixed rounded-full flex items-center justify-center mx-auto mb-3 text-on-primary-fixed">{icon}</div>
-                      <p className="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-1">{label}</p>
+                      <div className="w-12 h-12 bg-marigold-pale rounded-2xl flex items-center justify-center mx-auto mb-3 text-saffron">{icon}</div>
+                      <p className="font-headline text-[19px] font-bold text-ink mb-1">{label}</p>
                       <p className="font-caption text-caption text-on-surface-variant leading-relaxed">{desc}</p>
                     </div>
                   ))}
@@ -620,16 +612,16 @@ function DonateForm() {
 
               {/* ── RIGHT: Sidebar ── */}
               <div className="lg:col-span-4 space-y-6">
-                <div className="bg-primary rounded-xl p-6 text-on-primary">
+                <div className="bg-ink rounded-3xl p-6 text-on-primary">
                   <h3 className="font-headline-md text-headline-md mb-2">How It Works</h3>
                   <ul className="space-y-3 font-body-md text-body-md text-on-primary-container">
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">1.</span> Fill in your details and pick an amount.</li>
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">2.</span> Choose {YOUPI_READY ? "Instant UPI, " : ""}Manual (scan &amp; pay via UPI) or Automated (card / netbanking).</li>
                     <li className="flex gap-3"><span className="font-bold text-secondary-container">3.</span> Manual donations are verified by our admin team; automated ones confirm instantly.</li>
                   </ul>
-                  <div className="mt-4 p-4 bg-secondary rounded-xl">
-                    <p className="font-label-md text-label-md text-on-secondary font-bold mb-1">Transparency Promise</p>
-                    <p className="font-caption text-caption text-on-secondary/90 leading-relaxed">
+                  <div className="mt-4 p-4 bg-marigold rounded-2xl">
+                    <p className="font-semibold text-ink mb-1">Transparency promise</p>
+                    <p className="text-[14px] text-ink/80 leading-relaxed">
                       Every rupee is tracked. Once verified, a digital receipt is emailed and added to your donation history.
                     </p>
                   </div>
@@ -664,9 +656,10 @@ function DonateForm() {
                   </div>
                 )}
 
-                {/* Recent donors */}
+                {/* Recent donors (real data only) */}
+                {recentDonors.length > 0 && (
                 <div className="card p-5">
-                  <p className="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-3">Recent Donors</p>
+                  <p className="font-headline text-[19px] font-bold text-ink mb-3">Recent donors</p>
                   {recentDonors.map((d, i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-outline-variant/20 last:border-0">
                       <div className="flex items-center gap-2">
@@ -680,6 +673,7 @@ function DonateForm() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             </div>
           </div>

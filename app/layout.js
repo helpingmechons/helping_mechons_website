@@ -1,19 +1,33 @@
 import "./globals.css";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import MobileDonateBar from "@/components/layout/MobileDonateBar";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import ScrollProgress from "@/components/motion/ScrollProgress";
 
-// Fonts are self-hosted by next/font: downloaded at build time, served from
-// our own domain, preloaded, with font-display: swap. That avoids two extra
-// connections to Google (and a render-blocking stylesheet) on every visit,
-// which matters a lot on slow mobile networks.
-const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-body" });
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin"],
-  style:   ["normal", "italic"],
-  axes:    ["opsz"],
+// Fonts are bundled in app/fonts (Latin subset, OFL licence) and served from
+// our own domain, preloaded, with font-display: swap. No connection to Google
+// at build time or at runtime, which matters on slow mobile networks.
+//
+// Anek (display) and Mukta (body) are both from Ek Type, an Indian foundry.
+// Anek is variable in weight AND width; the hero animates its width axis.
+// Anek has a Telugu sibling (Anek Telugu) if the site adds Telugu pages.
+const anek = localFont({
+  src: "./fonts/AnekLatin-Variable.woff2",
+  weight: "100 800",
   display: "swap",
   variable: "--font-headline",
+  declarations: [{ prop: "font-stretch", value: "75% 125%" }],
+});
+const mukta = localFont({
+  src: [
+    { path: "./fonts/Mukta-400.woff2", weight: "400" },
+    { path: "./fonts/Mukta-500.woff2", weight: "500" },
+    { path: "./fonts/Mukta-600.woff2", weight: "600" },
+    { path: "./fonts/Mukta-700.woff2", weight: "700" },
+  ],
+  display: "swap",
+  variable: "--font-body",
 });
 
 export const metadata = {
@@ -40,20 +54,27 @@ export const metadata = {
   },
 };
 
+export const viewport = {
+  themeColor: "#0f2b46",
+};
+
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
+    <html lang="en" className={`${anek.variable} ${mukta.variable}`}>
       <body className="bg-background text-on-surface font-body antialiased pb-16 md:pb-0">
+        <a href="#main" className="skip-link">Skip to content</a>
+        <SmoothScroll />
+        <ScrollProgress />
         {children}
         <MobileDonateBar />
         <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              background: "#041627",
+              background: "#0f2b46",
               color: "#ffffff",
-              border: "1px solid #1a2b3c",
-              borderRadius: "8px",
+              border: "1px solid #17395a",
+              borderRadius: "10px",
             },
           }}
         />

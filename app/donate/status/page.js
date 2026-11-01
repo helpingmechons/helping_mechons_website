@@ -68,7 +68,7 @@ function StatusView() {
   const amt  = state.amount != null ? state.amount.toLocaleString("en-IN") : "—";
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-6">
+    <main id="main" className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-md w-full card p-10 text-center">
         <div className="w-16 h-16 bg-primary-fixed rounded-full flex items-center justify-center mx-auto mb-6">
           {state.error ? <XCircle className="w-8 h-8 text-error" /> : view.icon}
@@ -96,7 +96,7 @@ export default function DonationStatusPage() {
   return (
     <>
       <Navbar />
-      <Suspense fallback={<main className="min-h-screen bg-background" />}>
+      <Suspense fallback={<main id="main" className="min-h-screen bg-background" />}>
         <StatusView />
       </Suspense>
       <Footer />

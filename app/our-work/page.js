@@ -1,153 +1,209 @@
 "use client";
 import { getPhoto } from "@/lib/images/drivePhotos";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { X, ZoomIn, Heart } from "lucide-react";
-
-// Causes — amounts/percentages removed for production
-const CAUSES = [
-  { id: "medical",   icon: "🏥", label: "Medical Support",      badge: "bg-blue-50 text-blue-700",   img: getPhoto("medical-support"),      cat: "Medical Aid",     desc: "Providing free medical camps and life-saving surgeries to underserved communities across Visakhapatnam and beyond." },
-  { id: "food",      icon: "🍛", label: "Food Distribution",    badge: "bg-orange-50 text-orange-700",img: getPhoto("food-distribution-1"),   cat: "Food Security",   desc: "Distributing hot meals and food packets to 500+ homeless families nightly across the city." },
-  { id: "grocery",   icon: "🛒", label: "Grocery Kits",         badge: "bg-green-50 text-green-700",  img: getPhoto("grocery-support"),      cat: "Grocery Support", desc: "Custom-packed grocery kits with rice, dal, oil, and essentials to sustain a family for a month." },
-  { id: "education", icon: "📚", label: "Education Support",    badge: "bg-purple-50 text-purple-700",img: getPhoto("education-support"),     cat: "Education",       desc: "School bags, textbooks, stationery, and uniforms for children in tribal schools and rural areas." },
-  { id: "orphanage", icon: "🏠", label: "Orphanage Care",       badge: "bg-pink-50 text-pink-700",    img: getPhoto("orphanage-care"),       cat: "Child Care",      desc: "Regular visits to orphanages for meals, clothing, school fees, and emotional support for children." },
-  { id: "elderly",   icon: "🧓", label: "Old Age Home Support", badge: "bg-amber-50 text-amber-700",  img: getPhoto("old-age-care"),         cat: "Elder Care",      desc: "Monthly food, medicines, and companionship visits to elderly residents in old age homes." },
-];
+import { X, ChevronLeft, ChevronRight, Heart, Expand } from "lucide-react";
+import { CAUSES, STATS } from "@/lib/content/site";
+import AnimatedIcon from "@/components/motion/AnimatedIcon";
+import CountUp from "@/components/motion/CountUp";
+import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
 
 const ALL_PHOTOS = [
-  { src: getPhoto("food-distribution-1"),  alt: "Nightly food distribution",    cat: "food"      },
-  { src: getPhoto("food-distribution-2"),  alt: "Street food relief drive",      cat: "food"      },
-  { src: getPhoto("food-distribution-3"),  alt: "Grocery distribution",          cat: "grocery"   },
-  { src: getPhoto("education-support"),    alt: "School supplies distribution",  cat: "education" },
-  { src: getPhoto("grocery-support"),      alt: "Monthly grocery kits",          cat: "grocery"   },
-  { src: getPhoto("orphanage-care"),       alt: "Orphanage visit",               cat: "orphanage" },
-  { src: getPhoto("old-age-care"),         alt: "Old age home support",          cat: "elderly"   },
-  { src: getPhoto("medical-support"),      alt: "Medical aid camp",              cat: "medical"   },
+  { id: "p1", src: getPhoto("food-distribution-1", 1200), alt: "Nightly food distribution",   cat: "food"      },
+  { id: "p2", src: getPhoto("education-support", 1200),   alt: "School kits handed out",      cat: "education" },
+  { id: "p3", src: getPhoto("food-distribution-2", 1200), alt: "Street food relief drive",    cat: "food"      },
+  { id: "p4", src: getPhoto("orphanage-care", 1200),      alt: "Orphanage visit",             cat: "orphanage" },
+  { id: "p5", src: getPhoto("food-distribution-3", 1200), alt: "Grocery distribution",        cat: "grocery"   },
+  { id: "p6", src: getPhoto("old-age-care", 1200),        alt: "Old age home visit",          cat: "elderly"   },
+  { id: "p7", src: getPhoto("grocery-support", 1200),     alt: "Monthly grocery kits",        cat: "grocery"   },
+  { id: "p8", src: getPhoto("medical-support", 1200),     alt: "Medical and relief supplies", cat: "medical"   },
 ];
 
+const COLOR = Object.fromEntries(CAUSES.map((c) => [c.id, c.color]));
+const FILTERS = [{ id: "all", title: "Everything" }, ...CAUSES];
+
 export default function OurWorkPage() {
-  const [lightbox, setLightbox] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [openId, setOpenId] = useState(null);
+  const photos = filter === "all" ? ALL_PHOTOS : ALL_PHOTOS.filter((p) => p.cat === filter);
+  const index = photos.findIndex((p) => p.id === openId);
+  const open = index >= 0 ? photos[index] : null;
+
+  const step = useCallback((d) => {
+    if (index < 0) return;
+    setOpenId(photos[(index + d + photos.length) % photos.length].id);
+  }, [index, photos]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpenId(null);
+      if (e.key === "ArrowRight") step(1);
+      if (e.key === "ArrowLeft") step(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    window.__lenis?.stop();
+    return () => { window.removeEventListener("keydown", onKey); window.__lenis?.start(); };
+  }, [open, step]);
 
   return (
     <>
       <Navbar />
-      <main>
+      <main id="main">
 
         {/* ── Hero ── */}
-        <section className="bg-surface-container-low py-section-padding text-center border-b border-outline-variant/30">
+        <section className="bg-white pt-12 pb-14 md:pt-20 md:pb-20">
           <div className="section-container">
-            <span className="font-label-md text-label-md text-secondary uppercase tracking-widest">Transparency in Action</span>
-            <h1 className="font-headline-xl-mobile font-headline-xl text-headline-xl-mobile md:font-headline-xl text-headline-xl text-primary mt-3 mb-4 max-w-3xl mx-auto">
-              Measurable Impact in Every Mission.
-            </h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
-              We bridge the gap between intent and impact. Explore our initiatives focused on dignity,
-              health, and sustainable support for communities in urgent need.
+            <p className="text-[15px] font-medium text-saffron">Our work</p>
+            <h1 className="mt-3 font-headline text-display text-ink max-w-4xl">Six programmes. All of them on the ground.</h1>
+            <p className="mt-6 text-[19px] leading-relaxed text-on-surface-variant max-w-2xl">
+              Each programme has its own colour across the site, so you can follow a cause from this page to its campaigns and its entries in the transparency log.
             </p>
           </div>
         </section>
 
-        {/* ── Photo strip ── */}
-        <section className="overflow-hidden bg-surface border-b border-outline-variant/30">
-          <div className="flex">
-            {ALL_PHOTOS.slice(0, 4).map((p, i) => (
-              <div
-                key={i}
-                className="flex-1 h-40 md:h-52 overflow-hidden cursor-pointer relative group"
-                onClick={() => setLightbox(p)}
-              >
-                <Image src={p.src} alt={p.alt} fill sizes="25vw" className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 3×2 CAUSE GRID — no amounts ── */}
-        <section className="py-section-padding bg-background">
-          <div className="section-container">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-              {CAUSES.map(cause => (
-                <div key={cause.id} className="card group hover:shadow-md transition-all duration-300">
-                  {/* Image */}
-                  <div
-                    className="relative h-52 overflow-hidden cursor-pointer"
-                    onClick={() => setLightbox({ src: cause.img, alt: cause.label })}
-                  >
-                    <Image src={cause.img} alt={cause.label} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all flex items-center justify-center">
-                      <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* ── Programmes ── */}
+        <section className="bg-white pb-20 md:pb-28">
+          <RevealGroup className="section-container grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {CAUSES.map((c) => (
+              <RevealItem key={c.id} className="h-full">
+                <motion.article initial="off" whileHover="on" whileTap="on" className="group h-full rounded-3xl bg-white border border-outline-variant/70 overflow-hidden flex flex-col shadow-soft hover:shadow-lift transition-shadow duration-500">
+                  <div className="relative">
+                    <div className="relative h-52 overflow-hidden">
+                      <Image src={c.img} alt={c.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-[1.2s] ease-out-expo group-hover:scale-110" />
                     </div>
-                    <span className={`absolute top-3 left-3 badge text-xs ${cause.badge}`}>
-                      {cause.cat}
+                    <span className="absolute left-5 -bottom-7 w-14 h-14 rounded-2xl grid place-items-center text-white shadow-lift ring-4 ring-white" style={{ background: c.color }}>
+                      <AnimatedIcon name={c.icon} className="w-7 h-7" />
                     </span>
                   </div>
-
-                  {/* Content — no amounts shown */}
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-headline font-semibold text-on-surface">{cause.label}</h3>
-                      <span className="text-xl flex-shrink-0">{cause.icon}</span>
+                  <div className="pt-10 px-6 pb-6 flex flex-col flex-1">
+                    <h2 className="font-headline text-[28px] font-bold text-ink leading-none">{c.title}</h2>
+                    <p className="mt-3 text-[16px] leading-relaxed text-on-surface-variant flex-1">{c.desc}</p>
+                    <div className="mt-6 flex items-center justify-between">
+                      <Link href={c.id === "elderly" ? "/campaigns" : `/campaigns?cat=${c.id}`} className="link-underline text-[15px]">Campaigns</Link>
+                      <Link href="/donate" className="btn-primary py-2.5 px-5 text-[15px]">
+                        <Heart className="w-4 h-4 fill-current" /> Donate
+                      </Link>
                     </div>
-                    <p className="font-body-md text-body-md text-on-surface-variant mb-5 text-sm leading-relaxed">{cause.desc}</p>
-                    <Link href="/donate" className="btn-primary w-full justify-center py-2.5 text-sm">
-                      <Heart className="w-4 h-4" /> Donate to This Cause
-                    </Link>
                   </div>
-                </div>
-              ))}
+                  <span aria-hidden className="h-1.5 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-700 ease-out-expo" style={{ background: c.color }} />
+                </motion.article>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </section>
+
+        {/* ── Gallery with filters ── */}
+        <section className="bg-mist py-20 md:py-28">
+          <div className="section-container">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+              <div>
+                <h2 className="h-section">From our drives</h2>
+                <p className="mt-3 text-on-surface-variant text-[17px] max-w-md">Unfiltered photos from the field. Tap one to see it full size.</p>
+              </div>
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-5 px-5 lg:mx-0 lg:px-0" role="tablist" aria-label="Filter photos by programme">
+                {FILTERS.map((f) => {
+                  const on = filter === f.id;
+                  return (
+                    <button key={f.id} role="tab" aria-selected={on} onClick={() => setFilter(f.id)}
+                      className={`relative flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[15px] font-semibold transition-colors ${on ? "text-white" : "text-on-surface-variant hover:text-ink"}`}>
+                      {on && <motion.span layoutId="work-filter" className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+                      {f.color && <span className="relative cause-dot" style={{ background: f.color }} />}
+                      <span className="relative whitespace-nowrap">{f.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            <LayoutGroup>
+              <motion.ul layout className="grid grid-cols-2 md:grid-cols-4 auto-rows-[160px] md:auto-rows-[220px] gap-3 md:gap-4">
+                <AnimatePresence mode="popLayout">
+                  {photos.map((p, i) => (
+                    <motion.li key={p.id} layout
+                      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      className={i % 5 === 0 ? "col-span-2 row-span-2" : ""}>
+                      <motion.button layoutId={`photo-${p.id}`} onClick={() => setOpenId(p.id)}
+                        className="group relative w-full h-full rounded-2xl overflow-hidden block text-left"
+                        aria-label={`Open photo: ${p.alt}`}>
+                        <Image src={p.src} alt={p.alt} fill sizes="(min-width: 768px) 50vw, 100vw"
+                          className="object-cover transition-transform duration-700 ease-out-expo group-hover:scale-105" />
+                        <span className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <span className="absolute left-3 bottom-3 right-12 inline-flex items-center gap-2 text-white text-[14px] font-semibold opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                          <span className="cause-dot" style={{ background: COLOR[p.cat] }} /> {p.alt}
+                        </span>
+                        <span className="absolute right-3 bottom-3 w-8 h-8 rounded-full bg-white/90 grid place-items-center text-ink opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Expand className="w-4 h-4" />
+                        </span>
+                      </motion.button>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </motion.ul>
+
+              {/* Lightbox grows out of the clicked photo */}
+              <AnimatePresence>
+                {open && (
+                  <motion.div className="lightbox-overlay" onClick={() => setOpenId(null)}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    role="dialog" aria-modal="true" aria-label={open.alt}>
+                    <div className="relative w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+                      <motion.div layoutId={`photo-${open.id}`} className="relative w-full h-[min(72vh,640px)] rounded-2xl overflow-hidden bg-ink">
+                        <Image src={open.src} alt={open.alt} fill sizes="(min-width: 1024px) 1024px, 100vw" className="object-contain" />
+                      </motion.div>
+                      <div className="mt-4 flex items-center justify-between text-white">
+                        <p className="inline-flex items-center gap-2 text-[16px] font-semibold">
+                          <span className="cause-dot" style={{ background: COLOR[open.cat] }} /> {open.alt}
+                          <span className="text-white/50 font-normal ml-2">{index + 1} / {photos.length}</span>
+                        </p>
+                        <div className="flex gap-2">
+                          <button onClick={() => step(-1)} aria-label="Previous photo" className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 grid place-items-center"><ChevronLeft className="w-5 h-5" /></button>
+                          <button onClick={() => step(1)} aria-label="Next photo" className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 grid place-items-center"><ChevronRight className="w-5 h-5" /></button>
+                          <button onClick={() => setOpenId(null)} aria-label="Close" className="w-11 h-11 rounded-full bg-marigold text-ink grid place-items-center"><X className="w-5 h-5" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </LayoutGroup>
           </div>
         </section>
 
-        {/* ── Stats banner ── */}
-        <section className="py-16 bg-primary">
-          <div className="section-container grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              { stat: "500+", label: "Meals Delivered"   },
-              { stat: "30+",   label: "Medical Consults"  },
-              { stat: "50+",  label: "Education Kits"    },
-              { stat: "100%",   label: "Fund Transparency" },
-            ].map(({ stat, label }) => (
-              <div key={label}>
-                <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-secondary-container">{stat}</p>
-                <p className="font-label-md text-label-md text-on-primary-container uppercase tracking-widest mt-2">{label}</p>
+        {/* ── Totals ── */}
+        <section className="bg-ink text-white py-16 md:py-20">
+          <div className="section-container grid grid-cols-1 sm:grid-cols-3 gap-10">
+            {STATS.map((s) => (
+              <div key={s.label} className="border-l-2 border-marigold pl-5">
+                <p className="font-headline text-[56px] md:text-[72px] leading-none font-bold text-marigold">
+                  <CountUp to={s.value} suffix={s.suffix} />
+                </p>
+                <p className="mt-2 text-[17px] text-on-primary-container">{s.label}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* ── CTA ── */}
-        <section className="py-16 bg-secondary">
-          <div className="section-container flex flex-col md:flex-row items-center justify-between gap-6">
+        <section className="bg-marigold py-16 md:py-20">
+          <div className="section-container flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h2 className="font-headline-md text-headline-md text-on-secondary">Your contribution is the final piece.</h2>
-              <p className="font-body-md text-body-md text-on-secondary/90 mt-2">Every rupee is tracked and allocated to the missions you see above.</p>
+              <h2 className="font-headline text-[34px] md:text-[46px] leading-none font-bold text-ink">Fund the next drive.</h2>
+              <p className="mt-3 text-[18px] text-ink/80">Every rupee is logged against the programmes above.</p>
             </div>
-            <Link href="/donate"
-              className="flex-shrink-0 bg-on-secondary text-secondary px-8 py-4 rounded-lg font-semibold font-label-md text-label-md hover:opacity-90 transition-opacity">
-              Donate Now
+            <Link href="/donate" className="btn-ink px-8 py-4 text-[17px] self-start md:self-auto">
+              <Heart className="w-5 h-5 fill-current" /> Donate now
             </Link>
           </div>
         </section>
 
       </main>
-
-      {/* Lightbox */}
-      {lightbox && (
-        <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
-          <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setLightbox(null)} className="absolute -top-12 right-0 text-white hover:text-secondary-container transition-colors">
-              <X className="w-8 h-8" />
-            </button>
-            <Image src={lightbox.src} alt={lightbox.alt} width={900} height={600} sizes="(min-width: 768px) 768px, 100vw"
-              className="w-full h-auto rounded-xl shadow-2xl object-cover max-h-[80vh]" />
-          </div>
-        </div>
-      )}
-
       <Footer />
     </>
   );

@@ -62,7 +62,7 @@ export default function ProfileClient({ user, profile, donations, totalApproved 
   const hasMore = donations.length > RECENT_LIMIT;
 
   return (
-    <main className="bg-background min-h-screen">
+    <main id="main" className="bg-background min-h-screen">
 
       {/* ── Profile hero */}
       <section className="bg-background border-b border-outline-variant/30 py-8">

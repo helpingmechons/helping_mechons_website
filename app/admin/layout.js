@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }) {
       <AdminSidebar />
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-auto mt-14 md:mt-0">
+      <main id="main" className="flex-1 min-w-0 overflow-auto mt-14 md:mt-0">
         {children}
       </main>
     </div>

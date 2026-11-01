@@ -2,228 +2,210 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Heart, ArrowRight, CheckCircle } from "lucide-react";
+import { Heart, MapPin, ShieldCheck } from "lucide-react";
 import { createPublicClient } from "@/lib/supabase/public";
 import { getPhoto } from "@/lib/images/drivePhotos";
 import FundraiserBanner from "@/components/FundraiserBanner";
+import { ORG, STATS, CAUSES, IMPACT_UNITS, PRESETS, PHOTOS, FAQ } from "@/lib/content/site";
 
-const MARQUEE_PHOTOS = [
-  { src: getPhoto("food-distribution-1"), alt: "Nightly food distribution" },
-  { src: getPhoto("food-distribution-2"), alt: "Street food relief drive" },
-  { src: getPhoto("food-distribution-3"), alt: "Grocery distribution to families" },
-  { src: getPhoto("education-support"),   alt: "School supplies for tribal children" },
-  { src: getPhoto("grocery-support"),     alt: "Monthly grocery kits" },
-  { src: getPhoto("orphanage-care"),      alt: "Orphanage visit and donations" },
-  { src: getPhoto("old-age-care"),        alt: "Old age home support" },
-  { src: getPhoto("medical-support"),     alt: "Medical aid distribution" },
-];
+import HeroHeadline, { HeroFade } from "@/components/home/HeroHeadline";
+import HeroRing from "@/components/home/HeroRing";
+import LiveDonations from "@/components/home/LiveDonations";
+import PhotoStrip from "@/components/home/PhotoStrip";
+import CauseList from "@/components/home/CauseList";
+import ImpactCalculator from "@/components/home/ImpactCalculator";
+import DonationJourney from "@/components/home/DonationJourney";
+import Faq from "@/components/home/Faq";
+import CampaignCard from "@/components/CampaignCard";
+import CountUp from "@/components/motion/CountUp";
+import Magnetic from "@/components/motion/Magnetic";
+import Reveal, { RevealGroup, RevealItem } from "@/components/motion/Reveal";
+import AnimatedIcon from "@/components/motion/AnimatedIcon";
+import HoverGroup from "@/components/motion/HoverGroup";
 
 // Served from the CDN and rebuilt in the background at most once a minute
 // (and immediately when a donation is approved — see lib/revalidate.js).
 export const revalidate = 60;
 
+const FALLBACK_CAMPAIGNS = [
+  { id: "1", title: "Emergency Medical Fund",        slug: "emergency-medical-fund",      description: "Providing life-saving surgeries and primary care to families in need.",                         cover_image_url: getPhoto("medical-support"),     category: "medical",   location: "Visakhapatnam" },
+  { id: "2", title: "Daily Food for 500 Families",   slug: "daily-food-500-families",     description: "Our nightly food distribution reaches homeless and destitute families across the city.",       cover_image_url: getPhoto("food-distribution-1"), category: "food",      location: "Visakhapatnam" },
+  { id: "3", title: "Education Kits — 200 Children", slug: "education-kits-200-children", description: "School bags, books, and uniforms for underprivileged students so they attend with dignity.", cover_image_url: getPhoto("education-support"),   category: "education", location: "Visakhapatnam" },
+];
+
+const WAYS = [
+  { icon: "coins",   title: "Give money",   body: "One-off or whenever you can. UPI, card or net banking, with a receipt every time.",
+    cta: { href: "/donate", label: "Donate" } },
+  { icon: "users",   title: "Give time",    body: "Join a weekend drive: packing kits, serving food, or helping at a medical camp.",
+    cta: { href: `mailto:${ORG.email}?subject=I'd like to volunteer`, label: "Email us to volunteer" } },
+  { icon: "package", title: "Give supplies", body: "Rice, dal, clothes, school stationery and unexpired medicines all go to the next drive.",
+    cta: { href: ORG.phoneHref, label: `Call ${ORG.phone}` } },
+];
+
 export default async function HomePage() {
-  const supabase = createPublicClient();
-  const { data: campaignsData } = await supabase
-    .from("campaigns")
-    .select("id, title, slug, description, cover_image_url, category, location")
-    .eq("active", true).eq("featured", true)
-    .order("created_at", { ascending: false }).limit(3);
-  const campaigns = campaignsData ?? [];
+  let campaigns = [];
+  try {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("campaigns")
+      .select("id, title, slug, description, cover_image_url, category, location")
+      .eq("active", true).eq("featured", true)
+      .order("created_at", { ascending: false }).limit(3);
+    campaigns = data ?? [];
+  } catch {}
+  const shown = campaigns.length ? campaigns : FALLBACK_CAMPAIGNS;
 
   return (
     <>
       <Navbar />
-      <main>
+      <main id="main">
 
-        {/* ── HERO ── */}
-        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <Image src={getPhoto("food-distribution-1")} alt="Helping Mechons volunteers" fill sizes="100vw" className="object-cover" priority />
-            <div className="absolute inset-0 hero-gradient" />
-          </div>
-          <div className="relative z-10 section-container text-center py-24">
-            <span className="inline-block mb-6 px-4 py-2 bg-secondary/90 text-on-secondary font-label-md text-label-md rounded-full uppercase tracking-widest">
-              Est. 2020 · Visakhapatnam, India
-            </span>
-            <h1 className="font-headline text-4xl md:font-headline-xl text-headline-xl text-white mb-6 max-w-4xl mx-auto leading-tight text-balance drop-shadow-lg">
-              Healing Lives,<br className="hidden md:block" /> One Mission at a Time.
-            </h1>
-            <p className="text-white/90 font-body-lg text-body-lg max-w-2xl mx-auto mb-10 drop-shadow-sm">
-              Medical aid. Food security. Grocery support. Education. Orphanage care.<br className="hidden md:block" />
-              Join us in restoring dignity to those who need it most.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/donate" className="btn-primary text-base px-10 py-4 shadow-md">
-                <Heart className="w-5 h-5" /> Donate Now
-              </Link>
-              <Link href="/our-work" className="btn-outline text-white border-white text-base px-10 py-4">
-                View Our Work <ArrowRight className="w-5 h-5" />
-              </Link>
+        {/* ── HERO ─────────────────────────────────────────────── */}
+        <section className="relative overflow-hidden bg-white">
+          <div className="section-container grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6 lg:gap-8 items-center pt-10 pb-8 md:pt-14 md:pb-16">
+            <div>
+              <HeroFade delay={0}>
+                <p className="inline-flex items-center gap-2 text-[15px] font-medium text-on-surface-variant">
+                  <MapPin className="w-4 h-4 text-saffron" /> Volunteers in {ORG.city} since {ORG.founded}
+                </p>
+              </HeroFade>
+              <HeroHeadline
+                lines={["Food, medicine and", "school kits, handed", "over by volunteers."]}
+                className="mt-4 font-headline text-display text-ink"
+              />
+              <HeroFade delay={0.55}>
+                <p className="mt-6 text-[19px] leading-relaxed text-on-surface-variant max-w-[34rem] text-pretty">
+                  We run night food drives, medical camps and monthly grocery deliveries for people who have no one else to ask.
+                  Every rupee you give goes to the field, and every drive is photographed and logged.
+                </p>
+              </HeroFade>
+              <HeroFade delay={0.7} className="mt-8 flex flex-wrap items-center gap-3">
+                <Magnetic>
+                  <Link href="/donate" className="btn-primary text-[17px] px-7 py-4">
+                    <Heart className="w-5 h-5 fill-current" /> Donate now
+                  </Link>
+                </Magnetic>
+                <Link href="/transparency" className="btn-ghost text-ink border border-outline-variant px-6 py-4 text-[17px]">
+                  <ShieldCheck className="w-5 h-5 text-ring-green" /> See where it goes
+                </Link>
+              </HeroFade>
+              <HeroFade delay={0.9} className="mt-6 md:mt-8 md:min-h-[44px]">
+                <LiveDonations />
+              </HeroFade>
             </div>
-          </div>
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-bounce">
-            <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center pt-2">
-              <div className="w-1 h-3 bg-white/70 rounded-full" />
-            </div>
+            <HeroFade delay={0.2} className="relative -mx-2 sm:mx-0 -mb-6 md:mb-0">
+              <HeroRing src={getPhoto("education-support", 1000)} alt="Volunteers with children after handing out school kits" />
+            </HeroFade>
           </div>
         </section>
 
-        {/* ── IMPACT STATS ── */}
-        <section className="bg-surface-container-low py-14 md:py-16 border-b border-outline-variant/30">
+        <PhotoStrip photos={PHOTOS} />
+
+        {/* ── TOTALS, set as a sentence ───────────────────────── */}
+        <section className="bg-white py-16 md:py-24">
           <div className="section-container">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              {[
-				{ stat: "500+", label: "Meals Delivered"   },
-                { stat: "30+",   label: "Medical Consults"  },
-                { stat: "50+",  label: "Education Kits"    },
-                { stat: "100%",   label: "Fund Transparency" }
-              ].map(({ stat, label }) => (
-                <div key={label} className="space-y-2">
-                  <p className="font-headline font-bold text-3xl md:font-headline-xl text-headline-xl text-primary">{stat}</p>
-                  <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">{label}</p>
-                </div>
-              ))}
-            </div>
+            <Reveal>
+              <p className="font-headline text-[30px] md:text-[46px] leading-[1.12] font-semibold text-ink max-w-5xl [font-variation-settings:'wdth'_90]">
+                Since {ORG.founded}, our volunteers have served{" "}
+                <span className="text-saffron"><CountUp to={STATS[0].value} suffix={STATS[0].suffix} /> meals</span>, run{" "}
+                <span className="text-saffron"><CountUp to={STATS[1].value} suffix={STATS[1].suffix} /> medical consultations</span>{" "}
+                and handed out <span className="text-saffron"><CountUp to={STATS[2].value} suffix={STATS[2].suffix} /> school kits</span>,
+                {" "}<span className="text-on-surface-variant">all paid for by people like you.</span>
+              </p>
+            </Reveal>
           </div>
         </section>
 
-        {/* ── LIVE FUNDRAISER BANNER ── */}
+        {/* ── PROGRAMMES ─────────────────────────────────────── */}
+        <section className="bg-white pb-20 md:pb-28">
+          <div className="section-container">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 md:mb-10">
+              <h2 className="h-section">What we do</h2>
+              <p className="text-on-surface-variant text-[17px] max-w-sm">Six programmes, each with its own colour. Pick one to see its campaigns.</p>
+            </div>
+            <CauseList causes={CAUSES} />
+          </div>
+        </section>
+
+        {/* ── IMPACT CALCULATOR ───────────────────────────────── */}
+        <section className="bg-ink py-20 md:py-28 relative overflow-hidden">
+          <div className="section-container relative">
+            <ImpactCalculator units={IMPACT_UNITS} presets={PRESETS} />
+          </div>
+        </section>
+
         <FundraiserBanner />
 
-        {/* ── URGENT MISSIONS / CAMPAIGNS ── */}
-        <section className="py-section-padding bg-background">
-          <div className="section-container">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-              <div>
-                <h2 className="font-headline-lg text-headline-lg text-primary">Urgent Missions</h2>
-                <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-md">
-                  Your contribution directly funds these critical operations. Transparency is our foundation.
-                </p>
-              </div>
-              <Link href="/campaigns" className="btn-ghost text-secondary border border-secondary rounded-lg whitespace-nowrap">
-                All Campaigns <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-              {(campaigns.length > 0 ? campaigns : [
-                { id:"1", title:"Emergency Medical Fund",         slug:"emergency-medical-fund",     description:"Providing life-saving surgeries and primary care to families in need.",                               cover_image_url:getPhoto("medical-support"),       category:"medical"   },
-                { id:"2", title:"Daily Food for 500 Families",   slug:"daily-food-500-families",   description:"Our nightly food distribution reaches 500+ homeless and destitute families every single night.",       cover_image_url:getPhoto("food-distribution-1"),   category:"food"      },
-                { id:"3", title:"Education Kits — 200 Children", slug:"education-kits-200-children",description:"Supply school bags, books, and uniforms to 200 underprivileged students so they attend with dignity.", cover_image_url:getPhoto("education-support"),     category:"education" },
-              ]).map((c) => (
-                <div key={c.id} className="card group flex flex-col hover:shadow-md transition-shadow">
-                  <Link href={`/campaigns/${c.slug || c.id}`}>
-                    <div className="relative h-64 overflow-hidden">
-                      <Image src={c.cover_image_url || getPhoto("food-distribution-1")} alt={c.title}
-                        fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <span className="absolute top-3 left-3 badge bg-primary-fixed text-on-primary-fixed capitalize">{c.category}</span>
-                    </div>
-                  </Link>
-                  <div className="p-6 flex flex-col flex-grow">
-                    <Link href={`/campaigns/${c.slug || c.id}`}>
-                      <h3 className="font-headline-md font-semibold text-headline-md text-primary mb-2 group-hover:text-secondary transition-colors">{c.title}</h3>
-                    </Link>
-                    <p className="font-body-md text-body-md text-on-surface-variant mb-6 flex-grow">{c.description}</p>
-                    {/* No amounts — just donate CTA */}
-                    <Link href={`/donate?campaign=${c.slug || c.id}`} className="mt-auto btn-primary w-full justify-center text-sm py-3">
-                      <Heart className="w-4 h-4" /> Donate to This Cause
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── WHY WE EXIST ── */}
-        <section className="py-section-padding bg-primary text-on-primary">
-          <div className="section-container grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <div className="relative">
-              <Image src={getPhoto("old-age-care")} alt="Helping Mechons team with beneficiaries"
-                width={600} height={400} sizes="(min-width: 768px) 50vw, 100vw" className="rounded-2xl shadow-2xl w-full object-cover" />
-              <div className="absolute -bottom-6 -right-4 bg-secondary p-6 rounded-xl shadow-xl hidden lg:block max-w-xs">
-                <p className="font-headline italic text-on-secondary font-body-md text-body-md">"Transparency is our promise; impact is our proof."</p>
-              </div>
-            </div>
-            <div className="space-y-6">
-              <h2 className="font-headline-lg text-headline-lg text-on-primary">Why We Exist</h2>
-              <p className="font-body-lg text-body-lg text-on-primary-container">
-                Helping Mechons was founded on the belief that geography should not determine destiny.
-                We operate in underserved communities across India, bridging the gap between available resources
-                and those who need them most.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  "100% of public donations go directly to programs.",
-                  "Real-time tracking of every donation through our Portal.",
-                  "Collaborating with local leaders for lasting change.",
-                ].map(p => (
-                  <li key={p} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-secondary-container flex-shrink-0 mt-0.5" />
-                    <span className="font-body-md text-body-md text-on-primary-container">{p}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/about" className="inline-flex items-center gap-2 text-secondary-container font-semibold border-b border-secondary-container pb-1 hover:opacity-80 transition-opacity">
-                Learn more about our mission <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ── GALLERY ── */}
-        <section className="py-section-padding bg-surface-container">
+        {/* ── CAMPAIGNS ───────────────────────────────────────── */}
+        <section className="bg-mist py-20 md:py-28">
           <div className="section-container">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
               <div>
-                <h2 className="font-headline-lg text-headline-lg text-primary">Our Impact in Focus</h2>
-                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Unfiltered moments from our operations across India.</p>
+                <h2 className="h-section">Campaigns you can fund</h2>
+                <p className="mt-3 text-on-surface-variant text-[17px] max-w-md">Give to one specific drive. Your gift is tagged to it and shows up in its report.</p>
               </div>
-              <Link href="/our-work" className="btn-ghost text-secondary border border-secondary rounded-lg whitespace-nowrap">
-                View Gallery <ArrowRight className="w-4 h-4" />
-              </Link>
+              <HoverGroup className="self-start md:self-auto">
+                <Link href="/campaigns" className="link-underline text-[17px]">
+                  All campaigns <AnimatedIcon name="arrow" className="w-4 h-4" />
+                </Link>
+              </HoverGroup>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {MARQUEE_PHOTOS.slice(0, 4).map((p, i) => (
-                <div key={i} className={`relative rounded-xl overflow-hidden ${i === 0 ? "md:col-span-2 md:row-span-2 h-64 md:h-full" : "h-40 md:h-48"}`}>
-                  <Image src={p.src} alt={p.alt} fill sizes={i === 0 ? "(min-width: 768px) 50vw, 100vw" : "(min-width: 768px) 25vw, 50vw"} className="object-cover hover:scale-105 transition-transform duration-500" />
-                </div>
+            <RevealGroup className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {shown.map((c) => (
+                <RevealItem key={c.id}><CampaignCard campaign={c} /></RevealItem>
               ))}
-            </div>
+            </RevealGroup>
           </div>
         </section>
 
-        {/* ── PHOTO MARQUEE ── */}
-        <section className="py-10 bg-surface overflow-hidden border-y border-outline-variant/30">
-          <div className="overflow-hidden">
-            <div className="marquee-track">
-              {[...MARQUEE_PHOTOS, ...MARQUEE_PHOTOS].map((p, i) => (
-                <div key={i} className="flex-shrink-0 w-72 h-48 mx-3 rounded-xl overflow-hidden">
-                  <Image src={p.src} alt={p.alt} width={288} height={192}
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
-                </div>
-              ))}
+        {/* ── HOW A DONATION TRAVELS ──────────────────────────── */}
+        <section className="bg-white py-20 md:py-28">
+          <div className="section-container">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 mb-14">
+              <h2 className="h-section">Where your money goes, step by step</h2>
+              <p className="text-on-surface-variant text-[18px] leading-relaxed lg:pt-2 max-w-lg">
+                You shouldn&apos;t have to take our word for it. This is what happens after you press Donate,
+                and where you can check each step yourself.
+              </p>
             </div>
+            <DonationJourney />
           </div>
         </section>
 
-        {/* ── CTA BANNER ── */}
-        <section className="py-20 bg-secondary">
-          <div className="section-container text-center">
-            <h2 className="font-headline-lg text-headline-lg text-on-secondary mb-4">
-              Be the Reason Someone Smiles Today
-            </h2>
-            <p className="font-body-lg text-body-lg text-on-secondary/90 mb-8 max-w-xl mx-auto">
-              Every small contribution fuels our missions. Start your journey as a changemaker with us.
-            </p>
-            {/* Link to /donate — useEffect in donate page handles scroll-to-top */}
-            <Link
-              href="/donate"
-              className="inline-flex items-center gap-2 bg-on-secondary text-secondary px-10 py-4 rounded-lg font-semibold font-label-md text-label-md hover:opacity-90 transition-opacity shadow-md"
-            >
-              <Heart className="w-5 h-5 fill-current" />
-              Donate Now
-            </Link>
+        {/* ── WAYS TO HELP ────────────────────────────────────── */}
+        <section className="bg-mist py-20 md:py-28">
+          <div className="section-container">
+            <h2 className="h-section mb-10">Three ways to help</h2>
+            <RevealGroup className="grid md:grid-cols-3 gap-px bg-outline-variant rounded-3xl overflow-hidden border border-outline-variant">
+              {WAYS.map((w) => (
+                <RevealItem key={w.title} className="bg-white">
+                  <HoverGroup className="group h-full p-8 md:p-10 flex flex-col">
+                    <span className="w-14 h-14 rounded-2xl bg-marigold-pale text-saffron grid place-items-center">
+                      <AnimatedIcon name={w.icon} className="w-7 h-7" />
+                    </span>
+                    <h3 className="mt-6 font-headline text-[30px] font-bold text-ink leading-none">{w.title}</h3>
+                    <p className="mt-3 text-on-surface-variant text-[17px] leading-relaxed flex-1">{w.body}</p>
+                    <a href={w.cta.href} className="link-underline mt-6 text-[16px] self-start">{w.cta.label}</a>
+                  </HoverGroup>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          </div>
+        </section>
+
+        {/* ── FAQ ─────────────────────────────────────────────── */}
+        <section className="bg-white py-20 md:py-28">
+          <div className="section-container grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-10 lg:gap-16">
+            <div>
+              <h2 className="h-section">Questions donors ask us</h2>
+              <p className="mt-4 text-on-surface-variant text-[17px] max-w-sm">
+                Something else? Email <a className="link-underline" href={`mailto:${ORG.email}`}>{ORG.email}</a>
+              </p>
+              <div className="relative mt-10 hidden lg:block aspect-[4/3] max-w-sm rounded-3xl overflow-hidden">
+                <Image src={getPhoto("grocery-support")} alt="Volunteers with residents at an old age home" fill sizes="384px" className="object-cover" />
+              </div>
+            </div>
+            <Faq items={FAQ} />
           </div>
         </section>
 

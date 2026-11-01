@@ -3,181 +3,151 @@ import { getPhoto } from "@/lib/images/drivePhotos";
 import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { ExternalLink } from "lucide-react";
+import { Heart, CheckCircle2 } from "lucide-react";
+import { AllocationBar, GrowthChart } from "@/components/transparency/Charts";
+import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
+import AnimatedIcon from "@/components/motion/AnimatedIcon";
+import HoverGroup from "@/components/motion/HoverGroup";
+import ImageReveal from "@/components/motion/ImageReveal";
 
 export const metadata = { title: "Transparency & Trust — How We Work" };
 
-// Missions — amounts removed per org preference
+// VERIFY: confirm mission locations and figures with the NGO.
 const MISSIONS = [
-  { id: "HM-2024-08A", tag: "DELIVERED", title: "Hyderabad Night Food Drive",
+  { id: "HM-2024-08A", cat: "#f57c00", title: "Hyderabad Night Food Drive",
     img: getPhoto("food-distribution-1"),
     desc: "Nightly hot meal distribution to 1,200+ homeless individuals across old city Hyderabad — running every weekend since 2020." },
-  { id: "HM-2024-09C", tag: "DELIVERED", title: "Tribal School Support — Adilabad",
+  { id: "HM-2024-09C", cat: "#7b1fa2", title: "Tribal School Support — Adilabad",
     img: getPhoto("education-support"),
     desc: "School supply kits, uniforms, and digital learning tools delivered to 6 government schools serving tribal children in Adilabad district." },
-  { id: "HM-2024-11F", tag: "DELIVERED", title: "Medical Camp — Rural Telangana",
+  { id: "HM-2024-11F", cat: "#1e88e5", title: "Medical Camp — Rural Telangana",
     img: getPhoto("medical-support"),
     desc: "Free health check-ups, medicines, and specialist consultations provided to 3,000+ patients across 4 villages in Nalgonda and Mahbubnagar." },
 ];
 
-export default async function TransparencyPage() {
+const ALLOCATION = [
+  { label: "Direct aid and medical supplies", pct: 82, color: "#0f2b46" },
+  { label: "Logistics and field operations",  pct: 12, color: "#f6a623" },
+  { label: "Community education",             pct: 6,  color: "#43a047" },
+];
+
+// VERIFY: the original chart started in 2018, before the NGO was founded (2020).
+const GROWTH = [
+  { year: "2020", value: "200+",  pct: 18 },
+  { year: "2021", value: "500+",  pct: 36 },
+  { year: "2022", value: "800+",  pct: 56 },
+  { year: "2023", value: "1000+", pct: 72 },
+  { year: "Now",  value: "1500+", pct: 100 },
+];
+
+const PROMISES = [
+  { icon: "coins",   title: "Donations fund programmes",  desc: "Public donations go to food, medicine, kits and groceries. Running costs are covered separately." },
+  { icon: "receipt", title: "Every gift is receipted",    desc: "Each donation is checked by our team and a receipt is emailed and saved to your history." },
+  { icon: "camera",  title: "Every drive is recorded",    desc: "Photos and notes from each mission go into the log below, with a mission ID you can quote back to us." },
+];
+
+export default function TransparencyPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main id="main">
 
         {/* ── Hero ── */}
-        <section className="py-section-padding bg-background">
-          <div className="section-container grid grid-cols-1 lg:grid-cols-2 gap-gutter items-center">
-            <div className="space-y-5">
-              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md">OUR COMMITMENT</span>
-              <h1 className="font-headline-xl-mobile font-headline-xl text-headline-xl-mobile md:font-headline-xl text-headline-xl text-primary leading-tight">
-                Every rupee accounted for. Every life honored.
-              </h1>
-              <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
-                At Helping Mechons, we believe trust is built on transparency. We document every mission,
-                every deployment, and every outcome — so you always know where your generosity goes.
+        <section className="bg-white pt-12 pb-16 md:pt-20 md:pb-24">
+          <div className="section-container grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-12 items-center">
+            <div>
+              <p className="text-[15px] font-medium text-saffron">Transparency</p>
+              <h1 className="mt-3 font-headline text-display text-ink">Every rupee accounted for.</h1>
+              <p className="mt-6 text-[19px] leading-relaxed text-on-surface-variant max-w-xl">
+                We document every mission and every outcome, so you always know where your money went.
+                If something here doesn&apos;t add up, ask us and we&apos;ll show you.
               </p>
             </div>
-            <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
-              <Image src={getPhoto("old-age-care")} alt="Helping Mechons transparency in action" fill quality={75} sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
+            <div className="relative aspect-[5/4] rounded-[28px] overflow-hidden shadow-lift">
+              <Image src={getPhoto("old-age-care")} alt="Volunteers on a visit" fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
             </div>
           </div>
         </section>
 
-        {/* ── Fund Allocation + Growth Chart ── */}
-        <section className="py-section-padding bg-background">
-          <div className="section-container grid grid-cols-1 md:grid-cols-2 gap-gutter">
-            {/* Fund Allocation */}
-            <div className="card p-8">
-              <h3 className="font-headline font-semibold text-primary mb-6 flex items-center gap-2">
-                ⊕ Fund Allocation
-              </h3>
-              {[
-                { label: "Direct Aid & Medical Supplies",   pct: 82, color: "bg-blue-500"   },
-                { label: "Logistics & Field Operations",    pct: 12, color: "bg-orange-400" },
-                { label: "Community Education",             pct: 6,  color: "bg-green-400"  },
-              ].map(({ label, pct, color }) => (
-                <div key={label} className="mb-5">
-                  <div className="flex justify-between font-body-md text-body-md mb-1.5">
-                    <span className="text-on-surface">{label}</span>
-                    <span className="text-secondary font-semibold">{pct}%</span>
-                  </div>
-                  <div className="h-2.5 bg-surface-container-high rounded-full overflow-hidden">
-                    <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              ))}
-              <p className="font-caption text-caption text-on-surface-variant mt-4 italic">
-                *Helping Mechons maintains a 0% internal expense policy for public donations;
-                operational costs are covered by a separate private endowment.
+        {/* ── Promises ── */}
+        <section className="bg-ink text-white py-16 md:py-20">
+          <RevealGroup className="section-container grid md:grid-cols-3 gap-10">
+            {PROMISES.map((p) => (
+              <RevealItem key={p.title}>
+                <HoverGroup className="group">
+                  <span className="w-12 h-12 rounded-2xl bg-marigold text-ink grid place-items-center">
+                    <AnimatedIcon name={p.icon} className="w-6 h-6" />
+                  </span>
+                  <h2 className="mt-5 font-headline text-[26px] font-bold leading-tight">{p.title}</h2>
+                  <p className="mt-2 text-[16px] leading-relaxed text-on-primary-container">{p.desc}</p>
+                </HoverGroup>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </section>
+
+        {/* ── Allocation + growth ── */}
+        <section className="bg-white py-20 md:py-28">
+          <div className="section-container grid lg:grid-cols-2 gap-8">
+            <div className="rounded-3xl border border-outline-variant/70 p-7 md:p-10">
+              <h2 className="font-headline text-[30px] font-bold text-ink leading-none">How donations are split</h2>
+              <p className="mt-2 mb-8 text-[16px] text-on-surface-variant">Share of public donations by use.</p>
+              <AllocationBar items={ALLOCATION} />
+              <p className="mt-6 text-[14px] text-on-surface-variant">
+                Running costs are not taken from public donations. They&apos;re covered by a separate private fund.
               </p>
             </div>
-
-            {/* Growth of Impact */}
-            <div className="card p-8">
-              <h3 className="font-headline font-semibold text-primary mb-1 flex items-center gap-2">
-                ↗ Growth of Impact
-              </h3>
-              <p className="text-caption text-on-surface-variant mb-5">People served year over year</p>
-
-              {/* Bar Chart */}
-              <div
-                className="flex items-end justify-between gap-2 px-1 pb-0"
-                style={{ height: "180px", borderBottom: "2px solid #c4c6cd", borderLeft: "2px solid #c4c6cd" }}
-              >
-                {[
-                  { year: "2018", value: "50+",   pct: 10, color: "#b7c8de" },
-                  { year: "2020", value: "200+",  pct: 28, color: "#8eaac8" },
-                  { year: "2021", value: "500+",  pct: 44, color: "#5b8db0" },
-                  { year: "2022", value: "800+",  pct: 62, color: "#3b6f90" },
-                  { year: "2023", value: "1000+", pct: 78, color: "#1a5270" },
-                  { year: "Now",  value: "1500+", pct: 100, color: "#9a442d" },
-                ].map(({ year, value, pct, color }) => (
-                  <div key={year} className="flex flex-col items-center flex-1 gap-1">
-                    <span className="text-xs font-bold leading-none mb-1" style={{ color }}>{value}</span>
-                    <div
-                      className="w-full rounded-t-md"
-                      style={{ height: `${pct}%`, backgroundColor: color, transition: "height 1s ease" }}
-                    />
-                    <span className="text-xs text-on-surface-variant mt-1.5 text-center leading-tight">{year}</span>
-                  </div>
-                ))}
+            <div className="rounded-3xl border border-outline-variant/70 p-7 md:p-10">
+              <h2 className="font-headline text-[30px] font-bold text-ink leading-none">People reached each year</h2>
+              <p className="mt-2 mb-8 text-[16px] text-on-surface-variant">Cumulative, all programmes.</p>
+              <GrowthChart data={GROWTH} />
+              <div className="mt-3 flex gap-3">
+                {GROWTH.map((g) => <span key={g.year} className="flex-1 text-center text-[14px] text-on-surface-variant">{g.year}</span>)}
               </div>
-
-              {/* Legend */}
-              <div className="flex items-center gap-3 mt-4 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#b7c8de" }} />
-                  <span className="text-xs text-on-surface-variant">2018–2022</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#9a442d" }} />
-                  <span className="text-xs text-on-surface-variant">Current reach</span>
-                </div>
-              </div>
-              <p className="font-caption text-caption text-on-surface-variant mt-2">Year-over-year humanitarian reach expansion</p>
             </div>
           </div>
         </section>
 
-        {/* ── Completed Missions Log ── */}
-        <section className="py-section-padding bg-surface-container-low">
+        {/* ── Mission log ── */}
+        <section className="bg-mist py-20 md:py-28">
           <div className="section-container">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-              <div>
-                <h2 className="font-headline-lg text-headline-lg text-primary">Completed Missions Log</h2>
-                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Detailed reports from our most recent deployments.</p>
-              </div>
-              <Link href="#" className="btn-ghost text-secondary border border-secondary rounded-lg whitespace-nowrap">
-                View All Logs
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-              {MISSIONS.map(m => (
-                <div key={m.id} className="card overflow-hidden group">
-                  <div className="relative h-48 overflow-hidden">
-                    <Image src={m.img} alt={m.title} fill quality={70} sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute top-3 left-3">
-                      <span className="badge bg-primary-fixed text-on-primary-fixed">ID: {m.id}</span>
+            <h2 className="h-section">Completed missions</h2>
+            <p className="mt-3 mb-10 text-on-surface-variant text-[17px] max-w-md">Reports from our most recent deployments.</p>
+            <RevealGroup className="grid md:grid-cols-3 gap-6">
+              {MISSIONS.map((m) => (
+                <RevealItem key={m.id} className="h-full">
+                  <article className="group h-full rounded-3xl bg-white border border-outline-variant/70 overflow-hidden shadow-soft hover:shadow-lift transition-shadow duration-500 flex flex-col">
+                    <ImageReveal className="relative h-52 overflow-hidden" direction="up">
+                      <Image src={m.img} alt={m.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition-transform duration-[1.2s] ease-out-expo group-hover:scale-110" />
+                    </ImageReveal>
+                    <div className="p-6 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between gap-3 text-[13px]">
+                        <span className="font-mono text-on-surface-variant">{m.id}</span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-ring-green/10 text-ring-green px-2.5 py-1 font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Delivered
+                        </span>
+                      </div>
+                      <h3 className="mt-4 font-headline text-[24px] font-bold text-ink leading-tight flex items-start gap-2.5">
+                        <span className="cause-dot mt-2.5" style={{ background: m.cat }} /> {m.title}
+                      </h3>
+                      <p className="mt-2 text-[16px] leading-relaxed text-on-surface-variant">{m.desc}</p>
                     </div>
-                    <div className="absolute top-3 right-3">
-                      <span className="badge bg-secondary text-on-secondary">{m.tag}</span>
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-headline font-semibold text-on-surface mb-2">{m.title}</h3>
-                    <p className="font-body-md text-body-md text-on-surface-variant text-sm mb-4 leading-relaxed">{m.desc}</p>
-                    <div className="flex items-center justify-end pt-3 border-t border-outline-variant/30">
-                      <button className="p-2 rounded-lg text-secondary hover:bg-secondary-fixed/30 transition-colors">
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  </article>
+                </RevealItem>
               ))}
-            </div>
+            </RevealGroup>
           </div>
         </section>
 
         {/* ── CTA ── */}
-        <section className="py-20 bg-surface-container">
-          <div className="section-container max-w-3xl mx-auto text-center">
-            <h2 className="font-headline-lg text-headline-lg text-primary mb-4">
-              Help us reach the next milestone.
+        <section className="bg-white py-20">
+          <div className="section-container flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <h2 className="font-headline text-[32px] md:text-[44px] leading-[1.05] font-bold text-ink max-w-2xl">
+              Help fund the next mission in this log.
             </h2>
-            <p className="font-body-lg text-body-lg text-on-surface-variant mb-8">
-              Your contribution goes 100% to field operations. Join thousands of transparent donors
-              making a measurable difference today.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/donate" className="btn-primary px-10 py-4 text-base">
-                Donate Now
-              </Link>
-              <Link href="/campaigns"
-                className="border-2 border-primary text-primary px-10 py-4 rounded-lg font-semibold font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-all">
-                View Campaigns
-              </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/donate" className="btn-primary px-8 py-4 text-[16px]"><Heart className="w-5 h-5 fill-current" /> Donate</Link>
+              <Link href="/campaigns" className="btn-ghost border border-outline-variant px-7 py-4 text-[16px] text-ink">View campaigns</Link>
             </div>
           </div>
         </section>

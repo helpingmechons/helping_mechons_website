@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# helping_mechons_website
-=======
 # Helping Mechons — NGO Website & Admin Portal
 
 A fully responsive NGO website and admin system built with **Next.js 14**, **Supabase**, **Gmail SMTP**, and **Google Drive**. Deployed on **Vercel**.

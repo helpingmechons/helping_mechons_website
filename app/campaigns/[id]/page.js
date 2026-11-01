@@ -128,7 +128,7 @@ export default async function CampaignDetailPage({ params }) {
   return (
     <>
       <Navbar />
-      <main>
+      <main id="main">
         {/* Breadcrumb */}
         <div className="bg-surface-container-low border-b border-outline-variant/30">
           <div className="section-container py-3">

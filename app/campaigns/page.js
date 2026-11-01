@@ -1,22 +1,24 @@
-import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { createClient } from "@/lib/supabase/server";
 import { getPhoto } from "@/lib/images/drivePhotos";
-import { Heart, MapPin, Calendar, BadgeCheck } from "lucide-react";
+import { CAUSES } from "@/lib/content/site";
+import CampaignCard from "@/components/CampaignCard";
+import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
 
 export const metadata = { title: "Active Campaigns — Fundraisers" };
 
 const CATEGORY_LABELS = {
-  all:        "All Campaigns",
-  medical:    "Medical Aid",
-  food:       "Food Distribution",
-  grocery:    "Grocery Support",
+  all:        "All campaigns",
+  medical:    "Medical",
+  food:       "Food",
+  grocery:    "Groceries",
   education:  "Education",
-  orphanage:  "Orphanage Care",
+  orphanage:  "Orphanage",
   general:    "General",
 };
+const CAT_COLOR = Object.fromEntries(CAUSES.map((c) => [c.id, c.color]));
 
 export default async function CampaignsPage({ searchParams }) {
   const supabase = createClient();
@@ -45,141 +47,60 @@ export default async function CampaignsPage({ searchParams }) {
   return (
     <>
       <Navbar />
-      <main>
+      <main id="main">
         {/* Hero */}
-        <section className="bg-primary py-16">
-          <div className="section-container text-center">
-            <span className="text-label-md text-secondary-container uppercase tracking-widest">Our Campaigns</span>
-            <h1 className="font-headline text-headline-xl-mobile md:text-headline-lg text-on-primary mt-3 mb-4">
-              Every Cause Needs You
-            </h1>
-            <p className="text-body-lg text-on-primary-container max-w-xl mx-auto">
-              Each campaign is a real mission — completed or ongoing. Your contribution is counted, verified, and reported.
+        <section className="bg-white pt-12 pb-10 md:pt-20 md:pb-14">
+          <div className="section-container grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6 lg:items-end">
+            <div>
+              <p className="text-[15px] font-medium text-saffron">Campaigns</p>
+              <h1 className="mt-3 font-headline text-display text-ink">Pick a drive to fund.</h1>
+            </div>
+            <p className="text-[18px] leading-relaxed text-on-surface-variant max-w-md lg:pb-3">
+              Each campaign is a real mission, finished or still running. Gifts to a campaign are tagged to it,
+              checked by our team and reported.
             </p>
           </div>
         </section>
 
         {/* Category filters */}
-        <section className="bg-white border-b border-outline-variant/30 sticky top-16 z-40">
+        <nav aria-label="Filter campaigns" className="bg-white/90 backdrop-blur-xl border-y border-outline-variant/60 sticky top-0 z-30">
           <div className="section-container py-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                <Link
-                  key={key}
-                  href={key === "all" ? "/campaigns" : `/campaigns?cat=${key}`}
-                  className={`px-4 py-2 rounded-full text-label-md whitespace-nowrap transition-all flex-shrink-0 ${
-                    cat === key
-                      ? "bg-primary text-on-primary"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  {label}
-                </Link>
-              ))}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+                const on = cat === key;
+                return (
+                  <Link
+                    key={key}
+                    href={key === "all" ? "/campaigns" : `/campaigns?cat=${key}`}
+                    scroll={false}
+                    aria-current={on ? "page" : undefined}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[15px] font-semibold whitespace-nowrap flex-shrink-0 transition-all duration-300 ${
+                      on ? "bg-ink text-white shadow-soft" : "text-on-surface-variant hover:bg-surface-container hover:text-ink"
+                    }`}
+                  >
+                    {CAT_COLOR[key] && <span className="cause-dot" style={{ background: CAT_COLOR[key] }} />}
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
-        </section>
+        </nav>
 
         {/* Campaign cards */}
-        <section className="py-section-padding bg-background">
+        <section className="py-14 md:py-20 bg-mist">
           <div className="section-container">
             {items.length === 0 ? (
               <div className="text-center py-20">
-                <p className="text-body-lg text-on-surface-variant">No campaigns found in this category.</p>
-                <Link href="/campaigns" className="btn-primary inline-flex mt-4">View All</Link>
+                <p className="text-[19px] text-on-surface-variant">No campaigns in this category right now.</p>
+                <Link href="/campaigns" className="btn-primary inline-flex mt-5">Show all campaigns</Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-                {items.map(c => {
-                  const pct       = Math.min(100, Math.round(((c.current_amount || 0) / (c.goal_amount || 1)) * 100));
-                  const daysLeft  = c.end_date ? Math.max(0, Math.ceil((new Date(c.end_date) - new Date()) / 86400000)) : null;
-                  const completed = c.is_completed || pct >= 100;
-                  const showStats = c.show_public_stats && !completed;
-
-                  return (
-                    <div key={c.id} className="card group flex flex-col hover:shadow-lift transition-all duration-300">
-                      {/* Image */}
-                      <Link href={`/campaigns/${c.slug || c.id}`}>
-                        <div className="relative h-52 overflow-hidden">
-                          <Image
-                            src={c.cover_image_url || getPhoto("food-distribution-1")}
-                            alt={c.title} fill
-                            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 flex gap-1 flex-wrap">
-                            {c.featured && <span className="badge bg-secondary text-on-secondary">Featured</span>}
-                            {completed && (
-                              <span className="badge bg-primary-fixed text-on-primary-fixed flex items-center gap-1">
-                                <BadgeCheck className="w-3 h-3" /> Completed
-                              </span>
-                            )}
-                          </div>
-                          <span className="absolute top-3 right-3 badge bg-primary/80 text-on-primary capitalize">
-                            {c.category}
-                          </span>
-                        </div>
-                      </Link>
-
-                      {/* Content */}
-                      <div className="p-6 flex flex-col flex-grow">
-                        <Link href={`/campaigns/${c.slug || c.id}`}>
-                          <h2 className="font-headline font-semibold text-headline-md text-primary mb-2 line-clamp-2 group-hover:text-secondary transition-colors">
-                            {c.title}
-                          </h2>
-                        </Link>
-                        <p className="text-body-md text-on-surface-variant mb-4 flex-grow line-clamp-3">{c.description}</p>
-
-                        {/* Meta */}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-on-surface-variant mb-4">
-                          {c.location && (
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {c.location}</span>
-                          )}
-                          {!completed && daysLeft !== null && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {daysLeft > 0 ? `${daysLeft} days left` : "Closing soon"}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Conditional: show amounts only if show_public_stats = true and not completed */}
-                        {showStats && (
-                          <div className="mb-4">
-                            <div className="flex justify-between text-label-md mb-2">
-                              <span className="text-secondary font-semibold">
-                                ₹{Number(c.current_amount || 0).toLocaleString("en-IN")} raised
-                              </span>
-                              <span className="text-on-surface-variant">{pct}%</span>
-                            </div>
-                            <div className="progress-bar">
-                              <div className="progress-fill" style={{ width: `${pct}%` }} />
-                            </div>
-                            <p className="text-caption text-on-surface-variant mt-2">
-                              Goal: ₹{Number(c.goal_amount || 0).toLocaleString("en-IN")}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Completed message */}
-                        {completed && (
-                          <p className="text-caption text-secondary font-semibold mb-4 flex items-center gap-1">
-                            <BadgeCheck className="w-3.5 h-3.5" /> Mission completed — thank you!
-                          </p>
-                        )}
-
-                        {/* Donate CTA — always shown */}
-                        <Link
-                          href={`/donate?campaign=${c.slug || c.id}`}
-                          className="mt-auto btn-primary w-full justify-center text-sm py-3"
-                        >
-                          <Heart className="w-4 h-4" /> Donate to This Cause
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <RevealGroup key={cat} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {items.map((c) => (
+                  <RevealItem key={c.id} className="h-full"><CampaignCard campaign={c} showMeta /></RevealItem>
+                ))}
+              </RevealGroup>
             )}
           </div>
         </section>

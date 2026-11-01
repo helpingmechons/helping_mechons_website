@@ -92,7 +92,7 @@ export default function SignupPage() {
         </div>
         <div className="relative z-10 space-y-4">
           <h2 className="font-headline text-headline-lg text-on-primary">
-            Join 1,200+ people already making a difference.
+            Track your donations and get a receipt for every gift.
           </h2>
           <p className="text-body-md text-on-primary-container">
             Create your account to track donations, receive receipts, and stay connected to our mission.
